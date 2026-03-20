@@ -50,75 +50,72 @@ def search_clients_by_name(clients, phrase):
     return results
 
 
+def stamp_visual(stamps, max_stamps=5):
+    filled = "●" * stamps
+    empty = "○" * (max_stamps - stamps)
+    return filled + empty
+
+
 clients = load_clients()
 
 st.markdown("""
 <style>
 .block-container {
-    max-width: 780px;
-    padding-top: 2.2rem;
+    max-width: 820px;
+    padding-top: 2rem;
     padding-bottom: 3rem;
 }
 .main-title {
-    font-size: 46px;
+    font-size: 42px;
     font-weight: 800;
-    line-height: 1.05;
     margin-bottom: 6px;
 }
 .sub-text {
     opacity: 0.82;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
 }
-.dark-card {
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
+}
+.stTabs [data-baseweb="tab"] {
+    border-radius: 12px 12px 0 0;
+    padding-left: 18px;
+    padding-right: 18px;
+}
+.card-box {
     background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 22px;
-    padding: 24px;
+    padding: 26px;
     margin-top: 18px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
 .code-box {
     background: rgba(255,255,255,0.06);
     border-radius: 14px;
-    padding: 16px;
+    padding: 14px 16px;
     text-align: center;
     font-size: 24px;
     font-weight: 800;
     letter-spacing: 1.5px;
     margin-top: 8px;
+    margin-bottom: 18px;
 }
 .muted {
-    opacity: 0.7;
+    opacity: 0.72;
     font-size: 14px;
 }
-.stamp-row {
+.stamp-big {
     font-size: 28px;
     letter-spacing: 4px;
-    margin-top: 8px;
+    margin-top: 6px;
 }
-.reward-box {
-    background: rgba(34,197,94,0.14);
-    border: 1px solid rgba(34,197,94,0.4);
-    border-radius: 16px;
-    padding: 14px 16px;
-    margin-top: 14px;
+.small-space {
+    height: 14px;
 }
-.qr-wrap {
+.qr-center {
     text-align: center;
-    margin-top: 34px;
-}
-.result-box {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 16px;
-    padding: 16px;
-    margin-top: 12px;
-}
-.client-pill {
-    padding: 10px 14px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.05);
-    margin-bottom: 8px;
+    margin-top: 28px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -127,7 +124,10 @@ tab1, tab2 = st.tabs(["💄 Karta klientki", "🔒 Panel salonu"])
 
 with tab1:
     st.markdown('<div class="main-title">Karta lojalnościowa</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-text">Wpisz imię i nazwisko, aby wygenerować kartę klientki.</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="sub-text">Wpisz imię i nazwisko, aby wygenerować kartę klientki.</div>',
+        unsafe_allow_html=True
+    )
 
     with st.form("create_card_form"):
         name = st.text_input("Imię i nazwisko")
@@ -160,45 +160,38 @@ with tab1:
         qr_data = f"WB-LOYALTY:{client['code']}"
         qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=" + urllib.parse.quote(qr_data)
 
-        filled = "●" * client["stamps"]
-        empty = "○" * (5 - client["stamps"])
-        stamp_visual = filled + empty
+        st.markdown('<div class="card-box">', unsafe_allow_html=True)
+        st.markdown('<div class="muted">Klientka</div>', unsafe_allow_html=True)
+        st.subheader(client["name"])
 
-        reward_html = ""
+        st.markdown('<div class="small-space"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="muted">Kod karty</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="code-box">{client["code"]}</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="muted">Postęp</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="stamp-big">{stamp_visual(client["stamps"])}</div>',
+            unsafe_allow_html=True
+        )
+        st.caption(f'{client["stamps"]} / 5 pieczątek')
+
         if client["reward_ready"]:
-            reward_html = """
-            <div class="reward-box">
-                <strong>Gotowe 🎉</strong><br>
-                Klientka ma już nagrodę do odebrania.
-            </div>
-            """
+            st.success("Gotowe 🎉 Klientka ma już nagrodę do odebrania.")
 
-        card_html = f"""
-        <div class="dark-card">
-            <div class="muted">Klientka</div>
-            <h2 style="margin-top: 6px; margin-bottom: 18px;">{client["name"]}</h2>
-
-            <div class="muted">Kod karty</div>
-            <div class="code-box">{client["code"]}</div>
-
-            <div style="margin-top: 20px;" class="muted">Postęp</div>
-            <div class="stamp-row">{stamp_visual}</div>
-            <div class="muted">{client["stamps"]} / 5 pieczątek</div>
-
-            {reward_html}
-        </div>
-        """
-        st.markdown(card_html, unsafe_allow_html=True)
-
-        st.markdown('<div class="qr-wrap">', unsafe_allow_html=True)
-        st.image(qr_url, caption="Twój kod QR", width=240)
         st.markdown('</div>', unsafe_allow_html=True)
+
+        left, center, right = st.columns([1, 2, 1])
+        with center:
+            st.image(qr_url, caption="Twój kod QR", use_container_width=True)
 
         st.info("Zapisz ten kod QR lub pokaż go przy kolejnej wizycie.")
 
 with tab2:
     st.markdown('<div class="main-title" style="font-size:34px;">Panel salonu</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-text">Tutaj Wiktoria może wyszukać klientkę po imieniu i nazwisku albo kodzie karty.</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="sub-text">Tutaj Wiktoria może wyszukać klientkę po imieniu i nazwisku albo kodzie karty.</div>',
+        unsafe_allow_html=True
+    )
 
     pin = st.text_input("PIN salonu", type="password")
 
@@ -225,7 +218,6 @@ with tab2:
                         f"{data['name']} — {data['code']}": client_id
                         for client_id, data in results
                     }
-
                     chosen_label = st.selectbox("Wybierz klientkę", list(options.keys()))
                     selected_client_id = options[chosen_label]
                     selected_client = clients[selected_client_id]
@@ -240,24 +232,25 @@ with tab2:
                     st.warning("Nie znaleziono klientki o takim kodzie.")
 
         if selected_client:
-            filled = "●" * selected_client["stamps"]
-            empty = "○" * (5 - selected_client["stamps"])
-            stamp_visual = filled + empty
+            st.markdown('<div class="card-box">', unsafe_allow_html=True)
+            st.markdown('<div class="muted">Klientka</div>', unsafe_allow_html=True)
+            st.subheader(selected_client["name"])
 
-            admin_html = f"""
-            <div class="dark-card">
-                <div class="muted">Klientka</div>
-                <h3 style="margin-top: 6px;">{selected_client["name"]}</h3>
+            st.markdown('<div class="small-space"></div>', unsafe_allow_html=True)
+            st.markdown('<div class="muted">Kod</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="code-box">{selected_client["code"]}</div>', unsafe_allow_html=True)
 
-                <div class="muted" style="margin-top: 14px;">Kod</div>
-                <div class="code-box">{selected_client["code"]}</div>
+            st.markdown('<div class="muted">Pieczątki</div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="stamp-big">{stamp_visual(selected_client["stamps"])}</div>',
+                unsafe_allow_html=True
+            )
+            st.caption(f'{selected_client["stamps"]} / 5')
 
-                <div style="margin-top: 18px;" class="muted">Pieczątki</div>
-                <div class="stamp-row">{stamp_visual}</div>
-                <div class="muted">{selected_client["stamps"]} / 5</div>
-            </div>
-            """
-            st.markdown(admin_html, unsafe_allow_html=True)
+            if selected_client["reward_ready"]:
+                st.success("Ta klientka ma gotową nagrodę.")
+
+            st.markdown('</div>', unsafe_allow_html=True)
 
             col1, col2 = st.columns(2)
 
