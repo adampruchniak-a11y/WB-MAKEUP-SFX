@@ -1,3 +1,8 @@
+
+Adam Pruchniak <adam.pruchniak@gmail.com>
+21:32 (0 minut temu)
+do mnie
+
 import streamlit as st
 import uuid
 import urllib.parse
@@ -5,7 +10,9 @@ import json
 import os
 import re
 from datetime import datetime
-
+import numpy as np
+from PIL import Image
+import cv2
 
 st.set_page_config(
     page_title="WB Loyalty",
@@ -109,13 +116,29 @@ def validate_personal_name(value: str, field_name: str):
 def parse_scanned_qr(raw_value: str):
     if not raw_value:
         return None
-
     raw_value = raw_value.strip()
-
     if raw_value.startswith("WB-LOYALTY:"):
         return raw_value.replace("WB-LOYALTY:", "").strip().upper()
-
     return raw_value.upper()
+
+
+def decode_qr_from_uploaded_image(uploaded_file):
+    if uploaded_file is None:
+        return None
+
+    try:
+        image = Image.open(uploaded_file).convert("RGB")
+        image_np = np.array(image)
+        image_bgr = cv2.cvtColor(image_np, cv2.COLOR_RGB2BGR)
+
+        detector = cv2.QRCodeDetector()
+        value, points, _ = detector.detectAndDecode(image_bgr)
+
+        if value:
+            return parse_scanned_qr(value)
+        return None
+    except Exception:
+        return None
 
 
 clients = load_clients()
@@ -128,9 +151,6 @@ if "selected_client_id" not in st.session_state:
 
 if "created_cards_counter" not in st.session_state:
     st.session_state["created_cards_counter"] = 0
-
-if "scanner_open" not in st.session_state:
-    st.session_state["scanner_open"] = False
 
 st.markdown("""
 <style>
@@ -331,18 +351,11 @@ with tab2:
         st.markdown('<div class="search-box">', unsafe_allow_html=True)
         st.markdown('<div class="section-title">Skanuj / wpisz kod karty</div>', unsafe_allow_html=True)
 
-        col_a, col_b = st.columns([2, 1])
-        with col_a:
-            scan_code = st.text_input(
-                "Kod zeskanowany ze skanera lub wpisany ręcznie",
-                placeholder="Np. 9B5E7076",
-                key="scan_code"
-            )
-        with col_b:
-            st.write("")
-            st.write("")
-            if st.button("📷 Aparat", use_container_width=True):
-                st.session_state["scanner_open"] = not st.session_state["scanner_open"]
+        scan_code = st.text_input(
+            "Kod zeskanowany ze skanera lub wpisany ręcznie",
+            placeholder="Np. 9B5E7076",
+            key="scan_code"
+        )
 
         if st.button("Znajdź po kodzie", use_container_width=True):
             code_client_id, code_client = find_client_by_code(clients, scan_code)
@@ -351,20 +364,21 @@ with tab2:
             else:
                 st.warning("Nie znaleziono klientki o takim kodzie.")
 
-        if st.session_state["scanner_open"]:
-            st.info("Zezwól przeglądarce na dostęp do kamery i pokaż QR klientki do aparatu.")
-            qr_raw_value = qrcode_scanner(key="wb_qr_scanner")
-            if qr_raw_value:
-                parsed_code = parse_scanned_qr(qr_raw_value)
-                code_client_id, code_client = find_client_by_code(clients, parsed_code)
+        st.markdown("---")
+        st.markdown("**📷 Zeskanuj aparatem**")
+        photo = st.camera_input("Zrób zdjęcie kodu QR klientki")
 
+        if photo is not None:
+            scanned_code = decode_qr_from_uploaded_image(photo)
+            if scanned_code:
+                code_client_id, code_client = find_client_by_code(clients, scanned_code)
                 if code_client:
                     st.session_state["selected_client_id"] = code_client_id
                     st.success(f"Zeskanowano kartę: {code_client['name']}")
-                    st.session_state["scanner_open"] = False
-                    st.rerun()
                 else:
-                    st.warning(f"Zeskanowano kod, ale nie znaleziono klientki: {parsed_code}")
+                    st.warning(f"Odczytano kod QR, ale nie znaleziono klientki: {scanned_code}")
+            else:
+                st.warning("Nie udało się odczytać kodu QR z tego zdjęcia.")
 
         st.markdown('</div>', unsafe_allow_html=True)
 
