@@ -3,6 +3,7 @@ import uuid
 import urllib.parse
 import json
 import os
+import re
 from datetime import datetime
 
 st.set_page_config(
@@ -13,6 +14,8 @@ st.set_page_config(
 
 DB_FILE = "clients.json"
 ADMIN_PIN = "1234"  # zmień później
+MAX_STAMPS = 5
+MAX_CARDS_PER_SESSION = 3
 
 
 def load_clients():
@@ -63,13 +66,51 @@ def search_clients_by_name(clients, phrase):
     return results
 
 
-def stamp_visual(stamps, max_stamps=5):
+def stamp_visual(stamps, max_stamps=MAX_STAMPS):
     filled = "●" * stamps
     empty = "○" * (max_stamps - stamps)
     return filled + empty
 
 
+def validate_client_name(name: str):
+    clean = " ".join(name.strip().split())
+
+    if len(clean) < 5:
+        return False, "Podaj pełne imię i nazwisko."
+
+    parts = clean.split(" ")
+    if len(parts) < 2:
+        return False, "Wpisz imię i nazwisko, nie samo jedno słowo."
+
+    if any(len(p) < 2 for p in parts):
+        return False, "Imię i nazwisko muszą mieć co najmniej po 2 znaki."
+
+    if re.search(r"\d", clean):
+        return False, "Imię i nazwisko nie może zawierać cyfr."
+
+    if not re.fullmatch(r"[A-Za-zÀ-ÖØ-öø-ÿĄąĆćĘęŁłŃńÓóŚśŹźŻż \-]+", clean):
+        return False, "Dozwolone są tylko litery, spacje i myślnik."
+
+    banned_words = {
+        "dupa", "test", "spam", "admin", "xxx", "abc", "qwerty", "dupa1", "dupa2"
+    }
+    lowered = clean.lower()
+    if lowered in banned_words:
+        return False, "Podaj prawdziwe imię i nazwisko."
+
+    return True, clean
+
+
 clients = load_clients()
+
+if "last_client_id" not in st.session_state:
+    st.session_state["last_client_id"] = None
+
+if "selected_client_id" not in st.session_state:
+    st.session_state["selected_client_id"] = None
+
+if "created_cards_counter" not in st.session_state:
+    st.session_state["created_cards_counter"] = 0
 
 st.markdown("""
 <style>
@@ -130,11 +171,6 @@ st.markdown("""
     font-weight: 700;
     margin-bottom: 6px;
 }
-.danger-note {
-    margin-top: 10px;
-    font-size: 13px;
-    opacity: 0.75;
-}
 </style>
 """, unsafe_allow_html=True)
 
@@ -149,36 +185,44 @@ with tab1:
 
     with st.form("create_card_form"):
         name = st.text_input("Imię i nazwisko")
+        website = st.text_input("Website", value="", help="Pole techniczne", label_visibility="collapsed")
         submitted = st.form_submit_button("Generuj kartę", use_container_width=True)
 
     if submitted:
-        clean_name = name.strip()
-
-        if not clean_name:
-            st.error("Wpisz imię i nazwisko.")
+        if website.strip():
+            st.error("Nie udało się utworzyć karty.")
+        elif st.session_state["created_cards_counter"] >= MAX_CARDS_PER_SESSION:
+            st.warning("Osiągnięto limit tworzenia kart w tej sesji. Odśwież stronę później lub skontaktuj się z salonem.")
         else:
-            existing_client_id, existing_client = find_existing_client_by_name(clients, clean_name)
+            is_valid, result = validate_client_name(name)
 
-            if existing_client:
-                st.session_state["last_client_id"] = existing_client_id
-                st.warning("Ta klientka już istnieje w bazie. Pokazuję istniejącą kartę zamiast tworzyć nową.")
+            if not is_valid:
+                st.error(result)
             else:
-                client_id = str(uuid.uuid4())
-                card_code = generate_card_code()
+                clean_name = result
+                existing_client_id, existing_client = find_existing_client_by_name(clients, clean_name)
 
-                while any(c.get("code") == card_code for c in clients.values()):
+                if existing_client:
+                    st.session_state["last_client_id"] = existing_client_id
+                    st.warning("Ta klientka już istnieje w bazie. Pokazuję istniejącą kartę zamiast tworzyć nową.")
+                else:
+                    client_id = str(uuid.uuid4())
                     card_code = generate_card_code()
 
-                clients[client_id] = {
-                    "name": clean_name,
-                    "code": card_code,
-                    "stamps": 0,
-                    "reward_ready": False,
-                    "created_at": datetime.utcnow().isoformat()
-                }
-                save_clients(clients)
-                st.session_state["last_client_id"] = client_id
-                st.success("Karta została wygenerowana.")
+                    while any(c.get("code") == card_code for c in clients.values()):
+                        card_code = generate_card_code()
+
+                    clients[client_id] = {
+                        "name": clean_name,
+                        "code": card_code,
+                        "stamps": 0,
+                        "reward_ready": False,
+                        "created_at": datetime.utcnow().isoformat()
+                    }
+                    save_clients(clients)
+                    st.session_state["last_client_id"] = client_id
+                    st.session_state["created_cards_counter"] += 1
+                    st.success("Karta została wygenerowana.")
 
     last_client_id = st.session_state.get("last_client_id")
     if last_client_id and last_client_id in clients:
@@ -199,7 +243,7 @@ with tab1:
             f'<div class="stamp-big">{stamp_visual(client["stamps"])}</div>',
             unsafe_allow_html=True
         )
-        st.caption(f'{client["stamps"]} / 5 pieczątek')
+        st.caption(f'{client["stamps"]} / {MAX_STAMPS} pieczątek')
 
         if client["reward_ready"]:
             st.success("Gotowe 🎉 Klientka ma już nagrodę do odebrania.")
@@ -215,7 +259,7 @@ with tab1:
 with tab2:
     st.markdown('<div class="main-title" style="font-size:34px;">Panel salonu</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="sub-text">Tutaj Wiktoria może wyszukać klientkę po nazwisku albo zeskanować kod karty skanerem USB.</div>',
+        '<div class="sub-text">Opcje Salonu.</div>',
         unsafe_allow_html=True
     )
 
@@ -233,7 +277,6 @@ with tab2:
         )
 
         selected_client_id = None
-        selected_client = None
 
         if search_name.strip():
             results = search_clients_by_name(clients, search_name)
@@ -249,7 +292,6 @@ with tab2:
                     key="name_select"
                 )
                 selected_client_id = options[chosen_label]
-                selected_client = clients[selected_client_id]
             else:
                 st.warning("Brak klientek pasujących do wyszukiwania.")
 
@@ -294,7 +336,7 @@ with tab2:
                 f'<div class="stamp-big">{stamp_visual(final_client["stamps"])}</div>',
                 unsafe_allow_html=True
             )
-            st.caption(f'{final_client["stamps"]} / 5')
+            st.caption(f'{final_client["stamps"]} / {MAX_STAMPS}')
 
             if final_client["reward_ready"]:
                 st.success("Ta klientka ma gotową nagrodę.")
@@ -305,9 +347,9 @@ with tab2:
 
             with col1:
                 if st.button("➕ Dodaj pieczątkę", use_container_width=True):
-                    if final_client["stamps"] < 5:
+                    if final_client["stamps"] < MAX_STAMPS:
                         final_client["stamps"] += 1
-                        if final_client["stamps"] >= 5:
+                        if final_client["stamps"] >= MAX_STAMPS:
                             final_client["reward_ready"] = True
                         clients[final_client_id] = final_client
                         save_clients(clients)
@@ -326,14 +368,17 @@ with tab2:
                     st.rerun()
 
             with col3:
+                confirm_delete = st.checkbox("Potwierdź usunięcie", key=f"confirm_delete_{final_client_id}")
                 if st.button("🗑️ Usuń kartę", use_container_width=True):
-                    del clients[final_client_id]
-                    save_clients(clients)
-                    st.session_state["selected_client_id"] = None
-                    st.success("Karta została usunięta.")
-                    st.rerun()
-
-            st.caption("Usunięcie karty usuwa ją całkowicie z bazy.")
-
+                    if confirm_delete:
+                        del clients[final_client_id]
+                        save_clients(clients)
+                        st.session_state["selected_client_id"] = None
+                        if st.session_state.get("last_client_id") == final_client_id:
+                            st.session_state["last_client_id"] = None
+                        st.success("Karta została usunięta.")
+                        st.rerun()
+                    else:
+                        st.warning("Zaznacz najpierw potwierdzenie usunięcia.")
     elif pin:
         st.error("Nieprawidłowy PIN.")
