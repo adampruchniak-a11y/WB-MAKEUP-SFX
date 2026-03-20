@@ -7,7 +7,7 @@ import re
 from datetime import datetime
 import numpy as np
 from PIL import Image
-import cv2
+
 
 st.set_page_config(
     page_title="WB Loyalty",
