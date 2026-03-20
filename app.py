@@ -13,7 +13,7 @@ st.set_page_config(
 )
 
 DB_FILE = "clients.json"
-ADMIN_PIN = "1234"  # zmień później
+ADMIN_PIN = "1234"
 MAX_STAMPS = 5
 MAX_CARDS_PER_SESSION = 3
 
@@ -37,14 +37,26 @@ def generate_card_code():
     return str(uuid.uuid4())[:8].upper()
 
 
-def normalize_name(name: str) -> str:
-    return " ".join(name.strip().lower().split())
+def normalize_text(value: str) -> str:
+    return " ".join(value.strip().split())
 
 
-def find_existing_client_by_name(clients, name):
-    normalized = normalize_name(name)
+def normalize_name(first_name: str, last_name: str) -> str:
+    return f"{normalize_text(first_name)} {normalize_text(last_name)}".strip().lower()
+
+
+def full_name(first_name: str, last_name: str) -> str:
+    return f"{normalize_text(first_name)} {normalize_text(last_name)}".strip()
+
+
+def find_existing_client(first_name, last_name, clients):
+    target = normalize_name(first_name, last_name)
     for client_id, data in clients.items():
-        if normalize_name(data.get("name", "")) == normalized:
+        existing = normalize_name(
+            data.get("first_name", ""),
+            data.get("last_name", "")
+        )
+        if existing == target:
             return client_id, data
     return None, None
 
@@ -61,42 +73,34 @@ def search_clients_by_name(clients, phrase):
     phrase = phrase.strip().lower()
     results = []
     for client_id, data in clients.items():
-        if phrase in data.get("name", "").lower():
+        combined = full_name(
+            data.get("first_name", ""),
+            data.get("last_name", "")
+        ).lower()
+        if phrase in combined:
             results.append((client_id, data))
     return results
 
 
 def stamp_visual(stamps, max_stamps=MAX_STAMPS):
-    filled = "●" * stamps
-    empty = "○" * (max_stamps - stamps)
-    return filled + empty
+    return ("●" * stamps) + ("○" * (max_stamps - stamps))
 
 
-def validate_client_name(name: str):
-    clean = " ".join(name.strip().split())
+def validate_personal_name(value: str, field_name: str):
+    clean = normalize_text(value)
 
-    if len(clean) < 5:
-        return False, "Podaj pełne imię i nazwisko."
-
-    parts = clean.split(" ")
-    if len(parts) < 2:
-        return False, "Wpisz imię i nazwisko, nie samo jedno słowo."
-
-    if any(len(p) < 2 for p in parts):
-        return False, "Imię i nazwisko muszą mieć co najmniej po 2 znaki."
+    if len(clean) < 2:
+        return False, f"{field_name} musi mieć co najmniej 2 znaki."
 
     if re.search(r"\d", clean):
-        return False, "Imię i nazwisko nie może zawierać cyfr."
+        return False, f"{field_name} nie może zawierać cyfr."
 
     if not re.fullmatch(r"[A-Za-zÀ-ÖØ-öø-ÿĄąĆćĘęŁłŃńÓóŚśŹźŻż \-]+", clean):
-        return False, "Dozwolone są tylko litery, spacje i myślnik."
+        return False, f"{field_name} może zawierać tylko litery, spacje i myślnik."
 
-    banned_words = {
-        "dupa", "test", "spam", "admin", "xxx", "abc", "qwerty", "dupa1", "dupa2"
-    }
-    lowered = clean.lower()
-    if lowered in banned_words:
-        return False, "Podaj prawdziwe imię i nazwisko."
+    banned_words = {"dupa", "test", "spam", "admin", "xxx", "abc", "qwerty"}
+    if clean.lower() in banned_words:
+        return False, f"Podaj prawdziwe {field_name.lower()}."
 
     return True, clean
 
@@ -184,23 +188,29 @@ with tab1:
     )
 
     with st.form("create_card_form"):
-        name = st.text_input("Imię i nazwisko")
-        website = st.text_input("Website", value="", help="Pole techniczne", label_visibility="collapsed")
+        col1, col2 = st.columns(2)
+        with col1:
+            first_name = st.text_input("Imię")
+        with col2:
+            last_name = st.text_input("Nazwisko")
+
         submitted = st.form_submit_button("Generuj kartę", use_container_width=True)
 
     if submitted:
-        if website.strip():
-            st.error("Nie udało się utworzyć karty.")
-        elif st.session_state["created_cards_counter"] >= MAX_CARDS_PER_SESSION:
-            st.warning("Osiągnięto limit tworzenia kart w tej sesji. Odśwież stronę później lub skontaktuj się z salonem.")
+        if st.session_state["created_cards_counter"] >= MAX_CARDS_PER_SESSION:
+            st.warning("Osiągnięto limit tworzenia kart w tej sesji.")
         else:
-            is_valid, result = validate_client_name(name)
+            ok_first, first_result = validate_personal_name(first_name, "Imię")
+            ok_last, last_result = validate_personal_name(last_name, "Nazwisko")
 
-            if not is_valid:
-                st.error(result)
+            if not ok_first:
+                st.error(first_result)
+            elif not ok_last:
+                st.error(last_result)
             else:
-                clean_name = result
-                existing_client_id, existing_client = find_existing_client_by_name(clients, clean_name)
+                existing_client_id, existing_client = find_existing_client(
+                    first_result, last_result, clients
+                )
 
                 if existing_client:
                     st.session_state["last_client_id"] = existing_client_id
@@ -213,7 +223,9 @@ with tab1:
                         card_code = generate_card_code()
 
                     clients[client_id] = {
-                        "name": clean_name,
+                        "first_name": first_result,
+                        "last_name": last_result,
+                        "name": full_name(first_result, last_result),
                         "code": card_code,
                         "stamps": 0,
                         "reward_ready": False,
@@ -227,12 +239,16 @@ with tab1:
     last_client_id = st.session_state.get("last_client_id")
     if last_client_id and last_client_id in clients:
         client = clients[last_client_id]
+        client_name = full_name(
+            client.get("first_name", ""),
+            client.get("last_name", "")
+        )
         qr_data = f"WB-LOYALTY:{client['code']}"
         qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=" + urllib.parse.quote(qr_data)
 
         st.markdown('<div class="card-box">', unsafe_allow_html=True)
         st.markdown('<div class="muted">Klientka</div>', unsafe_allow_html=True)
-        st.subheader(client["name"])
+        st.subheader(client_name)
 
         st.markdown('<div class="small-space"></div>', unsafe_allow_html=True)
         st.markdown('<div class="muted">Kod karty</div>', unsafe_allow_html=True)
@@ -259,7 +275,7 @@ with tab1:
 with tab2:
     st.markdown('<div class="main-title" style="font-size:34px;">Panel salonu</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="sub-text">Opcje Salonu.</div>',
+        '<div class="sub-text">Tutaj Wiktoria może wyszukać klientkę po nazwisku albo zeskanować kod karty skanerem USB.</div>',
         unsafe_allow_html=True
     )
 
@@ -283,7 +299,7 @@ with tab2:
 
             if results:
                 options = {
-                    f"{data['name']} — {data['code']}": client_id
+                    f"{full_name(data.get('first_name', ''), data.get('last_name', ''))} — {data['code']}": client_id
                     for client_id, data in results
                 }
                 chosen_label = st.selectbox(
@@ -323,9 +339,14 @@ with tab2:
         final_client = clients.get(final_client_id) if final_client_id in clients else None
 
         if final_client:
+            final_name = full_name(
+                final_client.get("first_name", ""),
+                final_client.get("last_name", "")
+            )
+
             st.markdown('<div class="card-box">', unsafe_allow_html=True)
             st.markdown('<div class="muted">Klientka</div>', unsafe_allow_html=True)
-            st.subheader(final_client["name"])
+            st.subheader(final_name)
 
             st.markdown('<div class="small-space"></div>', unsafe_allow_html=True)
             st.markdown('<div class="muted">Kod</div>', unsafe_allow_html=True)
