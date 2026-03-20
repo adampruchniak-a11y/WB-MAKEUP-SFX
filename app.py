@@ -1,47 +1,36 @@
 import streamlit as st
-import qrcode
 import uuid
-import json
-import os
 
 st.set_page_config(page_title="Karta Lojalnościowa", layout="centered")
 
+if "clients" not in st.session_state:
+    st.session_state.clients = {}
+
 st.title("💄 Karta lojalnościowa")
-
-# baza klientów
-DB_FILE = "clients.json"
-
-def load_clients():
-    if os.path.exists(DB_FILE):
-        with open(DB_FILE, "r") as f:
-            return json.load(f)
-    return {}
-
-def save_clients(data):
-    with open(DB_FILE, "w") as f:
-        json.dump(data, f)
-
-clients = load_clients()
+st.subheader("Wygeneruj swoją kartę")
 
 name = st.text_input("Imię i nazwisko")
 
 if st.button("Generuj kartę"):
-    if name:
-        user_id = str(uuid.uuid4())
-
-        clients[user_id] = {
+    if name.strip():
+        user_id = str(uuid.uuid4())[:8].upper()
+        st.session_state.clients[user_id] = {
             "name": name,
             "stamps": 0
         }
 
-        save_clients(clients)
+        st.success("Karta została wygenerowana")
+        st.write(f"**Klientka:** {name}")
+        st.write(f"**Kod karty:** {user_id}")
+        st.code(user_id)
+    else:
+        st.error("Wpisz imię i nazwisko")
 
-        # QR
-        qr = qrcode.make(user_id)
-        qr.save("qr.png")
+st.divider()
+st.subheader("Lista klientek")
 
-        st.success("Karta wygenerowana!")
-
-        st.image("qr.png", caption="Twój kod QR")
-
-        st.write(f"Twoje ID: {user_id}")
+if st.session_state.clients:
+    for cid, data in st.session_state.clients.items():
+        st.write(f"**{data['name']}** — kod: `{cid}` — pieczątki: {data['stamps']}")
+else:
+    st.info("Brak klientek")
