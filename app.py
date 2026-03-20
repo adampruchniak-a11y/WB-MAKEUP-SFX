@@ -34,6 +34,18 @@ def generate_card_code():
     return str(uuid.uuid4())[:8].upper()
 
 
+def normalize_name(name: str) -> str:
+    return " ".join(name.strip().lower().split())
+
+
+def find_existing_client_by_name(clients, name):
+    normalized = normalize_name(name)
+    for client_id, data in clients.items():
+        if normalize_name(data.get("name", "")) == normalized:
+            return client_id, data
+    return None, None
+
+
 def find_client_by_code(clients, code):
     code = code.strip().upper()
     for client_id, data in clients.items():
@@ -118,6 +130,11 @@ st.markdown("""
     font-weight: 700;
     margin-bottom: 6px;
 }
+.danger-note {
+    margin-top: 10px;
+    font-size: 13px;
+    opacity: 0.75;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -135,25 +152,33 @@ with tab1:
         submitted = st.form_submit_button("Generuj kartę", use_container_width=True)
 
     if submitted:
-        if not name.strip():
+        clean_name = name.strip()
+
+        if not clean_name:
             st.error("Wpisz imię i nazwisko.")
         else:
-            client_id = str(uuid.uuid4())
-            card_code = generate_card_code()
+            existing_client_id, existing_client = find_existing_client_by_name(clients, clean_name)
 
-            while any(c.get("code") == card_code for c in clients.values()):
+            if existing_client:
+                st.session_state["last_client_id"] = existing_client_id
+                st.warning("Ta klientka już istnieje w bazie. Pokazuję istniejącą kartę zamiast tworzyć nową.")
+            else:
+                client_id = str(uuid.uuid4())
                 card_code = generate_card_code()
 
-            clients[client_id] = {
-                "name": name.strip(),
-                "code": card_code,
-                "stamps": 0,
-                "reward_ready": False,
-                "created_at": datetime.utcnow().isoformat()
-            }
-            save_clients(clients)
-            st.session_state["last_client_id"] = client_id
-            st.success("Karta została wygenerowana.")
+                while any(c.get("code") == card_code for c in clients.values()):
+                    card_code = generate_card_code()
+
+                clients[client_id] = {
+                    "name": clean_name,
+                    "code": card_code,
+                    "stamps": 0,
+                    "reward_ready": False,
+                    "created_at": datetime.utcnow().isoformat()
+                }
+                save_clients(clients)
+                st.session_state["last_client_id"] = client_id
+                st.success("Karta została wygenerowana.")
 
     last_client_id = st.session_state.get("last_client_id")
     if last_client_id and last_client_id in clients:
@@ -276,7 +301,7 @@ with tab2:
 
             st.markdown('</div>', unsafe_allow_html=True)
 
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
 
             with col1:
                 if st.button("➕ Dodaj pieczątkę", use_container_width=True):
@@ -292,13 +317,23 @@ with tab2:
                         st.warning("Klientka ma już komplet pieczątek.")
 
             with col2:
-                if st.button("🎁 Odbierz nagrodę / reset", use_container_width=True):
+                if st.button("🎁 Reset nagrody", use_container_width=True):
                     final_client["stamps"] = 0
                     final_client["reward_ready"] = False
                     clients[final_client_id] = final_client
                     save_clients(clients)
                     st.success("Nagroda rozliczona, licznik wyzerowany.")
                     st.rerun()
+
+            with col3:
+                if st.button("🗑️ Usuń kartę", use_container_width=True):
+                    del clients[final_client_id]
+                    save_clients(clients)
+                    st.session_state["selected_client_id"] = None
+                    st.success("Karta została usunięta.")
+                    st.rerun()
+
+            st.caption("Usunięcie karty usuwa ją całkowicie z bazy.")
 
     elif pin:
         st.error("Nieprawidłowy PIN.")
