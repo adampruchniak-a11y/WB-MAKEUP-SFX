@@ -1,8 +1,6 @@
 import streamlit as st
 import uuid
-import io
-import base64
-import segno
+import urllib.parse
 
 st.set_page_config(
     page_title="Karta Lojalnościowa",
@@ -10,16 +8,12 @@ st.set_page_config(
     layout="centered"
 )
 
-# Styl
 st.markdown("""
 <style>
 .block-container {
     max-width: 760px;
     padding-top: 3rem;
     padding-bottom: 3rem;
-}
-h1, h2, h3 {
-    letter-spacing: -0.5px;
 }
 .qr-card {
     background: #111827;
@@ -49,14 +43,12 @@ st.subheader("Wygeneruj swoją kartę")
 
 name = st.text_input("Imię i nazwisko")
 
-if st.button("Generuj kartę", use_container_width=False):
+if st.button("Generuj kartę"):
     if name.strip():
         user_id = str(uuid.uuid4())[:8].upper()
 
-        qr = segno.make(user_id)
-        buffer = io.BytesIO()
-        qr.save(buffer, kind="png", scale=8)
-        qr_bytes = buffer.getvalue()
+        qr_data = f"KARTA:{user_id}"
+        qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=" + urllib.parse.quote(qr_data)
 
         st.success("Karta została wygenerowana")
 
@@ -69,8 +61,7 @@ if st.button("Generuj kartę", use_container_width=False):
         </div>
         """, unsafe_allow_html=True)
 
-        st.image(qr_bytes, caption="Twój kod QR", width=260)
-
+        st.image(qr_url, caption="Twój kod QR", width=260)
         st.info("Zapisz ten kod QR lub pokaż go przy kolejnej wizycie.")
     else:
         st.error("Wpisz imię i nazwisko")
