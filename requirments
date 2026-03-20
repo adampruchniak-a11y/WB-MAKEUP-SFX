@@ -1,3 +1,2 @@
-streamlit==1.44.1
-qrcode==7.4.2
-pillow==10.4.0
+streamlit
+segno
