@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 DB_FILE = "clients.json"
-ADMIN_PIN = "1234"   # zmień później na swój PIN
+ADMIN_PIN = "1234"   # później zmień
 
 
 def load_clients():
@@ -76,6 +76,7 @@ st.markdown("""
     font-size: 24px;
     font-weight: 800;
     letter-spacing: 1.5px;
+    margin-top: 8px;
 }
 .muted {
     opacity: 0.7;
@@ -93,10 +94,15 @@ st.markdown("""
     padding: 14px 16px;
     margin-top: 14px;
 }
-hr {
-    border: none;
-    border-top: 1px solid rgba(255,255,255,0.08);
-    margin: 28px 0;
+.qr-wrap {
+    text-align: center;
+    margin-top: 34px;
+}
+.qr-wrap img {
+    border-radius: 16px;
+}
+.qr-note {
+    margin-top: 16px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -118,7 +124,6 @@ with tab1:
             client_id = str(uuid.uuid4())
             card_code = generate_card_code()
 
-            # upewnij się, że kod jest unikalny
             while any(c.get("code") == card_code for c in clients.values()):
                 card_code = generate_card_code()
 
@@ -130,7 +135,6 @@ with tab1:
                 "created_at": datetime.utcnow().isoformat()
             }
             save_clients(clients)
-
             st.session_state["last_client_id"] = client_id
             st.success("Karta została wygenerowana.")
 
@@ -144,28 +148,43 @@ with tab1:
         empty = "○" * (5 - client["stamps"])
         stamp_visual = filled + empty
 
-        st.markdown(f"""
+        reward_html = ""
+        if client["reward_ready"]:
+            reward_html = """
+            <div class="reward-box">
+                <strong>Gotowe 🎉</strong><br>
+                Klientka ma już nagrodę do odebrania.
+            </div>
+            """
+
+        card_html = f"""
         <div class="dark-card">
             <div class="muted">Klientka</div>
-            <h2 style="margin-top: 6px; margin-bottom: 16px;">{client["name"]}</h2>
+            <h2 style="margin-top: 6px; margin-bottom: 18px;">{client["name"]}</h2>
 
             <div class="muted">Kod karty</div>
             <div class="code-box">{client["code"]}</div>
 
-            <div style="margin-top: 18px;" class="muted">Postęp</div>
+            <div style="margin-top: 20px;" class="muted">Postęp</div>
             <div class="stamp-row">{stamp_visual}</div>
             <div class="muted">{client["stamps"]} / 5 pieczątek</div>
 
-            {"<div class='reward-box'><strong>Gotowe 🎉</strong><br>Klientka ma już nagrodę do odebrania.</div>" if client["reward_ready"] else ""}
+            {reward_html}
         </div>
-        """, unsafe_allow_html=True)
+        """
+        st.markdown(card_html, unsafe_allow_html=True)
 
-        st.image(qr_url, caption="Twój kod QR", width=260)
+        st.markdown('<div class="qr-wrap">', unsafe_allow_html=True)
+        st.image(qr_url, caption="Twój kod QR", width=240)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="qr-note">', unsafe_allow_html=True)
         st.info("Zapisz ten kod QR lub pokaż go przy kolejnej wizycie.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
 with tab2:
     st.markdown('<div class="main-title" style="font-size:34px;">Panel salonu</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-text">Tutaj narzeczona może wyszukać klientkę po kodzie i dodać pieczątkę.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-text">Tutaj salon może wyszukać klientkę po kodzie i dodać pieczątkę.</div>', unsafe_allow_html=True)
 
     pin = st.text_input("PIN salonu", type="password")
 
@@ -186,7 +205,7 @@ with tab2:
                 empty = "○" * (5 - client["stamps"])
                 stamp_visual = filled + empty
 
-                st.markdown(f"""
+                admin_html = f"""
                 <div class="dark-card">
                     <div class="muted">Klientka</div>
                     <h3 style="margin-top: 6px;">{client["name"]}</h3>
@@ -196,7 +215,8 @@ with tab2:
                     <div class="stamp-row">{stamp_visual}</div>
                     <div class="muted">{client["stamps"]} / 5</div>
                 </div>
-                """, unsafe_allow_html=True)
+                """
+                st.markdown(admin_html, unsafe_allow_html=True)
 
                 col1, col2 = st.columns(2)
 
@@ -221,7 +241,6 @@ with tab2:
                         save_clients(clients)
                         st.success("Nagroda rozliczona, licznik wyzerowany.")
                         st.rerun()
-
             else:
                 st.error("Nie znaleziono klientki o takim kodzie.")
     elif pin:
