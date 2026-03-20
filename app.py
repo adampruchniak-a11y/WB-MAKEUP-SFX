@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 DB_FILE = "clients.json"
-ADMIN_PIN = "1234"   # później zmień
+ADMIN_PIN = "1234"  # zmień później
 
 
 def load_clients():
@@ -39,6 +39,15 @@ def find_client_by_code(clients, code):
         if data.get("code") == code:
             return client_id, data
     return None, None
+
+
+def search_clients_by_name(clients, phrase):
+    phrase = phrase.strip().lower()
+    results = []
+    for client_id, data in clients.items():
+        if phrase in data.get("name", "").lower():
+            results.append((client_id, data))
+    return results
 
 
 clients = load_clients()
@@ -98,11 +107,18 @@ st.markdown("""
     text-align: center;
     margin-top: 34px;
 }
-.qr-wrap img {
+.result-box {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
     border-radius: 16px;
+    padding: 16px;
+    margin-top: 12px;
 }
-.qr-note {
-    margin-top: 16px;
+.client-pill {
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.05);
+    margin-bottom: 8px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -178,70 +194,94 @@ with tab1:
         st.image(qr_url, caption="Twój kod QR", width=240)
         st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown('<div class="qr-note">', unsafe_allow_html=True)
         st.info("Zapisz ten kod QR lub pokaż go przy kolejnej wizycie.")
-        st.markdown('</div>', unsafe_allow_html=True)
 
 with tab2:
     st.markdown('<div class="main-title" style="font-size:34px;">Panel salonu</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-text">Tutaj salon może wyszukać klientkę po kodzie i dodać pieczątkę.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-text">Tutaj Wiktoria może wyszukać klientkę po imieniu i nazwisku albo kodzie karty.</div>', unsafe_allow_html=True)
 
     pin = st.text_input("PIN salonu", type="password")
 
     if pin == ADMIN_PIN:
         st.success("Zalogowano do panelu salonu.")
 
-        code_to_find = st.text_input("Kod klientki", placeholder="Np. 9B5E7076").strip().upper()
+        mode = st.radio(
+            "Sposób wyszukiwania",
+            ["Imię i nazwisko", "Kod karty"],
+            horizontal=True
+        )
 
-        if st.button("Szukaj klientki", use_container_width=True):
-            st.session_state["search_code"] = code_to_find
+        selected_client_id = None
+        selected_client = None
 
-        search_code = st.session_state.get("search_code", "")
-        if search_code:
-            client_id, client = find_client_by_code(clients, search_code)
+        if mode == "Imię i nazwisko":
+            search_name = st.text_input("Wyszukaj klientkę", placeholder="Np. Wiktoria Betler")
 
-            if client:
-                filled = "●" * client["stamps"]
-                empty = "○" * (5 - client["stamps"])
-                stamp_visual = filled + empty
+            if search_name.strip():
+                results = search_clients_by_name(clients, search_name)
 
-                admin_html = f"""
-                <div class="dark-card">
-                    <div class="muted">Klientka</div>
-                    <h3 style="margin-top: 6px;">{client["name"]}</h3>
-                    <div class="muted" style="margin-top: 14px;">Kod</div>
-                    <div class="code-box">{client["code"]}</div>
-                    <div style="margin-top: 18px;" class="muted">Pieczątki</div>
-                    <div class="stamp-row">{stamp_visual}</div>
-                    <div class="muted">{client["stamps"]} / 5</div>
-                </div>
-                """
-                st.markdown(admin_html, unsafe_allow_html=True)
+                if results:
+                    options = {
+                        f"{data['name']} — {data['code']}": client_id
+                        for client_id, data in results
+                    }
 
-                col1, col2 = st.columns(2)
+                    chosen_label = st.selectbox("Wybierz klientkę", list(options.keys()))
+                    selected_client_id = options[chosen_label]
+                    selected_client = clients[selected_client_id]
+                else:
+                    st.warning("Brak klientek pasujących do wyszukiwania.")
 
-                with col1:
-                    if st.button("➕ Dodaj pieczątkę", use_container_width=True):
-                        if client["stamps"] < 5:
-                            client["stamps"] += 1
-                            if client["stamps"] >= 5:
-                                client["reward_ready"] = True
-                            clients[client_id] = client
-                            save_clients(clients)
-                            st.success("Dodano pieczątkę.")
-                            st.rerun()
-                        else:
-                            st.warning("Klientka ma już komplet pieczątek.")
+        else:
+            code_to_find = st.text_input("Kod klientki", placeholder="Np. 9B5E7076").strip().upper()
+            if code_to_find:
+                selected_client_id, selected_client = find_client_by_code(clients, code_to_find)
+                if not selected_client:
+                    st.warning("Nie znaleziono klientki o takim kodzie.")
 
-                with col2:
-                    if st.button("🎁 Odbierz nagrodę / reset", use_container_width=True):
-                        client["stamps"] = 0
-                        client["reward_ready"] = False
-                        clients[client_id] = client
+        if selected_client:
+            filled = "●" * selected_client["stamps"]
+            empty = "○" * (5 - selected_client["stamps"])
+            stamp_visual = filled + empty
+
+            admin_html = f"""
+            <div class="dark-card">
+                <div class="muted">Klientka</div>
+                <h3 style="margin-top: 6px;">{selected_client["name"]}</h3>
+
+                <div class="muted" style="margin-top: 14px;">Kod</div>
+                <div class="code-box">{selected_client["code"]}</div>
+
+                <div style="margin-top: 18px;" class="muted">Pieczątki</div>
+                <div class="stamp-row">{stamp_visual}</div>
+                <div class="muted">{selected_client["stamps"]} / 5</div>
+            </div>
+            """
+            st.markdown(admin_html, unsafe_allow_html=True)
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                if st.button("➕ Dodaj pieczątkę", use_container_width=True):
+                    if selected_client["stamps"] < 5:
+                        selected_client["stamps"] += 1
+                        if selected_client["stamps"] >= 5:
+                            selected_client["reward_ready"] = True
+                        clients[selected_client_id] = selected_client
                         save_clients(clients)
-                        st.success("Nagroda rozliczona, licznik wyzerowany.")
+                        st.success("Dodano pieczątkę.")
                         st.rerun()
-            else:
-                st.error("Nie znaleziono klientki o takim kodzie.")
+                    else:
+                        st.warning("Klientka ma już komplet pieczątek.")
+
+            with col2:
+                if st.button("🎁 Odbierz nagrodę / reset", use_container_width=True):
+                    selected_client["stamps"] = 0
+                    selected_client["reward_ready"] = False
+                    clients[selected_client_id] = selected_client
+                    save_clients(clients)
+                    st.success("Nagroda rozliczona, licznik wyzerowany.")
+                    st.rerun()
+
     elif pin:
         st.error("Nieprawidłowy PIN.")
