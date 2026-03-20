@@ -5,7 +5,7 @@ import json
 import os
 import re
 from datetime import datetime
-from streamlit_qrcode_scanner import qrcode_scanner
+
 
 st.set_page_config(
     page_title="WB Loyalty",
