@@ -35,8 +35,9 @@ def generate_card_code():
 
 
 def find_client_by_code(clients, code):
+    code = code.strip().upper()
     for client_id, data in clients.items():
-        if data.get("code") == code:
+        if data.get("code", "").upper() == code:
             return client_id, data
     return None, None
 
@@ -74,14 +75,6 @@ st.markdown("""
     opacity: 0.82;
     margin-bottom: 24px;
 }
-.stTabs [data-baseweb="tab-list"] {
-    gap: 8px;
-}
-.stTabs [data-baseweb="tab"] {
-    border-radius: 12px 12px 0 0;
-    padding-left: 18px;
-    padding-right: 18px;
-}
 .card-box {
     background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
     border: 1px solid rgba(255,255,255,0.08);
@@ -113,9 +106,17 @@ st.markdown("""
 .small-space {
     height: 14px;
 }
-.qr-center {
-    text-align: center;
-    margin-top: 28px;
+.search-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 18px;
+    padding: 18px;
+    margin-top: 16px;
+}
+.section-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 6px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -189,7 +190,7 @@ with tab1:
 with tab2:
     st.markdown('<div class="main-title" style="font-size:34px;">Panel salonu</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="sub-text">Tutaj Wiktoria może wyszukać klientkę po imieniu i nazwisku albo kodzie karty.</div>',
+        '<div class="sub-text">Tutaj Wiktoria może wyszukać klientkę po nazwisku albo zeskanować kod karty skanerem USB.</div>',
         unsafe_allow_html=True
     )
 
@@ -198,56 +199,79 @@ with tab2:
     if pin == ADMIN_PIN:
         st.success("Zalogowano do panelu salonu.")
 
-        mode = st.radio(
-            "Sposób wyszukiwania",
-            ["Imię i nazwisko", "Kod karty"],
-            horizontal=True
+        st.markdown('<div class="search-box">', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Szukaj po imieniu i nazwisku</div>', unsafe_allow_html=True)
+        search_name = st.text_input(
+            "Wpisz imię lub nazwisko",
+            placeholder="Np. Wiktoria Betler",
+            key="search_name"
         )
 
         selected_client_id = None
         selected_client = None
 
-        if mode == "Imię i nazwisko":
-            search_name = st.text_input("Wyszukaj klientkę", placeholder="Np. Wiktoria Betler")
+        if search_name.strip():
+            results = search_clients_by_name(clients, search_name)
 
-            if search_name.strip():
-                results = search_clients_by_name(clients, search_name)
+            if results:
+                options = {
+                    f"{data['name']} — {data['code']}": client_id
+                    for client_id, data in results
+                }
+                chosen_label = st.selectbox(
+                    "Wybierz klientkę z listy",
+                    list(options.keys()),
+                    key="name_select"
+                )
+                selected_client_id = options[chosen_label]
+                selected_client = clients[selected_client_id]
+            else:
+                st.warning("Brak klientek pasujących do wyszukiwania.")
 
-                if results:
-                    options = {
-                        f"{data['name']} — {data['code']}": client_id
-                        for client_id, data in results
-                    }
-                    chosen_label = st.selectbox("Wybierz klientkę", list(options.keys()))
-                    selected_client_id = options[chosen_label]
-                    selected_client = clients[selected_client_id]
-                else:
-                    st.warning("Brak klientek pasujących do wyszukiwania.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        else:
-            code_to_find = st.text_input("Kod klientki", placeholder="Np. 9B5E7076").strip().upper()
-            if code_to_find:
-                selected_client_id, selected_client = find_client_by_code(clients, code_to_find)
-                if not selected_client:
-                    st.warning("Nie znaleziono klientki o takim kodzie.")
+        st.markdown('<div class="search-box">', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Skanuj / wpisz kod karty</div>', unsafe_allow_html=True)
+        st.caption("Tu możesz użyć skanera USB. Klikasz w pole i skanujesz kod z telefonu klientki.")
 
-        if selected_client:
+        scan_code = st.text_input(
+            "Kod zeskanowany ze skanera lub wpisany ręcznie",
+            placeholder="Np. 9B5E7076",
+            key="scan_code"
+        )
+
+        if st.button("Znajdź po kodzie", use_container_width=True):
+            code_client_id, code_client = find_client_by_code(clients, scan_code)
+            if code_client:
+                st.session_state["selected_client_id"] = code_client_id
+            else:
+                st.warning("Nie znaleziono klientki o takim kodzie.")
+
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        if selected_client_id:
+            st.session_state["selected_client_id"] = selected_client_id
+
+        final_client_id = st.session_state.get("selected_client_id")
+        final_client = clients.get(final_client_id) if final_client_id in clients else None
+
+        if final_client:
             st.markdown('<div class="card-box">', unsafe_allow_html=True)
             st.markdown('<div class="muted">Klientka</div>', unsafe_allow_html=True)
-            st.subheader(selected_client["name"])
+            st.subheader(final_client["name"])
 
             st.markdown('<div class="small-space"></div>', unsafe_allow_html=True)
             st.markdown('<div class="muted">Kod</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="code-box">{selected_client["code"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="code-box">{final_client["code"]}</div>', unsafe_allow_html=True)
 
             st.markdown('<div class="muted">Pieczątki</div>', unsafe_allow_html=True)
             st.markdown(
-                f'<div class="stamp-big">{stamp_visual(selected_client["stamps"])}</div>',
+                f'<div class="stamp-big">{stamp_visual(final_client["stamps"])}</div>',
                 unsafe_allow_html=True
             )
-            st.caption(f'{selected_client["stamps"]} / 5')
+            st.caption(f'{final_client["stamps"]} / 5')
 
-            if selected_client["reward_ready"]:
+            if final_client["reward_ready"]:
                 st.success("Ta klientka ma gotową nagrodę.")
 
             st.markdown('</div>', unsafe_allow_html=True)
@@ -256,11 +280,11 @@ with tab2:
 
             with col1:
                 if st.button("➕ Dodaj pieczątkę", use_container_width=True):
-                    if selected_client["stamps"] < 5:
-                        selected_client["stamps"] += 1
-                        if selected_client["stamps"] >= 5:
-                            selected_client["reward_ready"] = True
-                        clients[selected_client_id] = selected_client
+                    if final_client["stamps"] < 5:
+                        final_client["stamps"] += 1
+                        if final_client["stamps"] >= 5:
+                            final_client["reward_ready"] = True
+                        clients[final_client_id] = final_client
                         save_clients(clients)
                         st.success("Dodano pieczątkę.")
                         st.rerun()
@@ -269,9 +293,9 @@ with tab2:
 
             with col2:
                 if st.button("🎁 Odbierz nagrodę / reset", use_container_width=True):
-                    selected_client["stamps"] = 0
-                    selected_client["reward_ready"] = False
-                    clients[selected_client_id] = selected_client
+                    final_client["stamps"] = 0
+                    final_client["reward_ready"] = False
+                    clients[final_client_id] = final_client
                     save_clients(clients)
                     st.success("Nagroda rozliczona, licznik wyzerowany.")
                     st.rerun()
