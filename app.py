@@ -293,9 +293,9 @@ with tab1:
         st.info("Zapisz ten kod QR lub pokaż go przy kolejnej wizycie.")
 
 with tab2:
-    st.markdown('<div class="main-title" style="font-size:34px;">Panel salonu PRO</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-title" style="font-size:34px;">Panel salonu </div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="sub-text">Wersja pod aparat telefonu i szybkie wyszukiwanie klientki.</div>',
+        '<div class="sub-text">Szybkie wyszukiwanie klientki.</div>',
         unsafe_allow_html=True
     )
 
@@ -309,7 +309,7 @@ with tab2:
 
         scanner_link = "https://twoja-domena-ze-scannerem/scanner.html"
         st.markdown(
-            f'<div class="pro-note"><strong>Skaner telefonu:</strong> otwórz osobno stronę skanera na telefonie Wiktorii. Po zeskanowaniu QR klientka sama otworzy się tutaj.</div>',
+            f'<div class="pro-note"><strong>Skaner telefonu:</strong> Zeskanuj kod QR.</div>',
             unsafe_allow_html=True
         )
         st.code(scanner_link)
@@ -319,7 +319,7 @@ with tab2:
 
         search_name = st.text_input(
             "Wpisz imię lub nazwisko",
-            placeholder="Np. Wiktoria Betler",
+            placeholder="Np. Jan Kowalski",
             key="search_name"
         )
 
