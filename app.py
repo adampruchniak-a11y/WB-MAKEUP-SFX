@@ -1,3 +1,8 @@
+
+Adam Pruchniak <adam.pruchniak@gmail.com>
+02:50 (2 minuty temu)
+do mnie
+
 import streamlit as st
 import uuid
 import urllib.parse
@@ -144,7 +149,7 @@ html, body, [class*="css"] {
 }
 
 .stApp {
-    background: linear-gradient(180deg, #050505 0%, #090909 100%);
+    background: linear-gradient(180deg, #030303 0%, #090909 100%);
     color: #f5f5f5;
 }
 
@@ -163,12 +168,14 @@ h1, h2, h3 {
     font-weight: 800;
     margin-bottom: 6px;
     color: #ffffff;
+    text-align: center;
 }
 
 .sub-text {
-    color: #a3a3a3;
+    color: #9f9f9f;
     margin-bottom: 26px;
     font-size: 16px;
+    text-align: center;
 }
 
 .stTabs [data-baseweb="tab-list"] {
@@ -177,8 +184,8 @@ h1, h2, h3 {
 }
 
 .stTabs [data-baseweb="tab"] {
-    background: #101010;
-    border: 1px solid #1f1f1f;
+    background: #0f0f0f;
+    border: 1px solid #1e1e1e;
     border-radius: 14px 14px 0 0;
     color: #d4d4d4;
     padding-left: 18px;
@@ -188,12 +195,12 @@ h1, h2, h3 {
 .stTabs [aria-selected="true"] {
     background: #171717 !important;
     color: #ffffff !important;
-    border-color: #2a2a2a !important;
+    border-color: #2b2b2b !important;
 }
 
 .card-box {
-    background: linear-gradient(180deg, #0a0a0a 0%, #111111 100%);
-    border: 1px solid #202020;
+    background: linear-gradient(180deg, #080808 0%, #111111 100%);
+    border: 1px solid #1f1f1f;
     border-radius: 24px;
     padding: 28px;
     margin-top: 18px;
@@ -201,7 +208,7 @@ h1, h2, h3 {
 }
 
 .code-box {
-    background: #151515;
+    background: #141414;
     border: 1px solid #242424;
     border-radius: 16px;
     padding: 16px;
@@ -231,8 +238,8 @@ h1, h2, h3 {
 }
 
 .search-box {
-    background: #0d0d0d;
-    border: 1px solid #1e1e1e;
+    background: #0c0c0c;
+    border: 1px solid #1c1c1c;
     border-radius: 20px;
     padding: 20px;
     margin-top: 16px;
@@ -246,8 +253,8 @@ h1, h2, h3 {
 }
 
 .pro-note {
-    background: #111111;
-    border: 1px solid #2a2a2a;
+    background: #101010;
+    border: 1px solid #252525;
     border-radius: 16px;
     padding: 14px 16px;
     margin-top: 10px;
@@ -255,18 +262,18 @@ h1, h2, h3 {
 }
 
 .stTextInput input {
-    background: #111111 !important;
+    background: #101010 !important;
     color: #ffffff !important;
     border: 1px solid #2a2a2a !important;
     border-radius: 14px !important;
 }
 
 .stTextInput input::placeholder {
-    color: #6f6f6f !important;
+    color: #666 !important;
 }
 
 .stSelectbox div[data-baseweb="select"] > div {
-    background: #111111 !important;
+    background: #101010 !important;
     border: 1px solid #2a2a2a !important;
     border-radius: 14px !important;
     color: #ffffff !important;
@@ -275,9 +282,9 @@ h1, h2, h3 {
 .stButton > button,
 .stDownloadButton > button,
 .stLinkButton > a {
-    background: #111111 !important;
+    background: #101010 !important;
     color: #ffffff !important;
-    border: 1px solid #2b2b2b !important;
+    border: 1px solid #2a2a2a !important;
     border-radius: 14px !important;
     min-height: 48px;
     font-weight: 700 !important;
@@ -286,8 +293,8 @@ h1, h2, h3 {
 .stButton > button:hover,
 .stDownloadButton > button:hover,
 .stLinkButton > a:hover {
-    border-color: #4a4a4a !important;
     background: #181818 !important;
+    border-color: #404040 !important;
 }
 
 div[data-testid="stAlert"] {
@@ -295,36 +302,24 @@ div[data-testid="stAlert"] {
     border: 1px solid #2a2a2a !important;
 }
 
-.stSuccess {
-    background: rgba(34,197,94,0.12) !important;
-}
-
-.stWarning {
-    background: rgba(245,158,11,0.12) !important;
-}
-
-.stError {
-    background: rgba(239,68,68,0.12) !important;
-}
-
-.stInfo {
-    background: rgba(255,255,255,0.04) !important;
-}
-
 hr {
     border: none;
-    border-top: 1px solid #202020;
+    border-top: 1px solid #1f1f1f;
     margin: 24px 0;
 }
 </style>
 """, unsafe_allow_html=True)
 
-tab1, tab2 = st.tabs(["🖤 Karta klientki", "🔒 Panel salonu "])
+tab1, tab2 = st.tabs(["🖤 Karta klientki", "🔒 Panel salonu PRO"])
 
 with tab1:
+    col_logo_left, col_logo_center, col_logo_right = st.columns([1, 2, 1])
+    with col_logo_center:
+        st.image("logo.png", width=240)
+
     st.markdown('<div class="main-title">WB Make-up & SFX</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="sub-text">Karta lojalnościowa klientki.</div>',
+        '<div class="sub-text">Ekskluzywna karta lojalnościowa klientki.</div>',
         unsafe_allow_html=True
     )
 
@@ -409,11 +404,32 @@ with tab1:
 
         left, center, right = st.columns([1, 2, 1])
         with center:
-            st.image(qr_url, caption="Kod QR klientki", use_container_width=True)
+            st.markdown(
+                f"""
+                <div style="display:flex; justify-content:center; margin-top: 12px;">
+                    <img src="{qr_url}"
+                         style="
+                            width: 220px;
+                            border-radius: 22px;
+                            display:block;
+                            box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+                            border: 1px solid #222;
+                         ">
+                </div>
+                <div style="text-align:center; color:#8f8f8f; margin-top:10px; font-size:14px;">
+                    Kod QR klientki
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
         st.info("Zapisz ten kod QR lub pokaż go przy kolejnej wizycie.")
 
 with tab2:
+    col_logo_left, col_logo_center, col_logo_right = st.columns([1, 2, 1])
+    with col_logo_center:
+        st.image("logo.png", width=180)
+
     st.markdown('<div class="main-title" style="font-size:34px;">Panel salonu</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="sub-text">Obsługa kart klientek, skanowanie i pieczątki.</div>',
