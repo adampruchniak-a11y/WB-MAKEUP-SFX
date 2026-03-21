@@ -47,6 +47,7 @@ def format_name_case(value: str) -> str:
     clean = normalize_text(value).lower()
     if not clean:
         return ""
+
     parts = clean.split(" ")
     formatted_parts = []
 
@@ -174,20 +175,20 @@ html, body, [class*="css"] {
 
 .stApp {
     background:
-        radial-gradient(circle at top, rgba(194,156,76,0.10) 0%, rgba(0,0,0,0) 26%),
+        radial-gradient(circle at top, rgba(194,156,76,0.10) 0%, rgba(0,0,0,0) 24%),
         linear-gradient(180deg, #020202 0%, #060606 50%, #0a0a0a 100%);
     color: #f4f4f4;
 }
 
 .block-container {
     max-width: 820px;
-    padding-top: 0.7rem;
-    padding-bottom: 2.6rem;
+    padding-top: 0.8rem;
+    padding-bottom: 2.8rem;
 }
 
 .stTabs [data-baseweb="tab-list"] {
     gap: 10px;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     background: transparent;
 }
 
@@ -208,23 +209,23 @@ html, body, [class*="css"] {
 }
 
 .hero {
-    margin: 4px 0 10px 0;
-    min-height: 112px;
+    margin: 0 0 10px 0;
+    min-height: 100px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .hero img {
-    width: 230px;
-    max-width: 76%;
+    width: 220px;
+    max-width: 74%;
     display: block;
     filter: drop-shadow(0 4px 14px rgba(194,156,76,0.14));
 }
 
 .panel-logo img {
-    width: 180px;
-    max-width: 66%;
+    width: 170px;
+    max-width: 64%;
 }
 
 .form-box {
@@ -247,6 +248,13 @@ html, body, [class*="css"] {
     box-shadow:
         0 16px 40px rgba(0,0,0,0.36),
         inset 0 1px 0 rgba(255,255,255,0.02);
+}
+
+.client-name {
+    font-size: 28px;
+    font-weight: 800;
+    margin-top: 6px;
+    color: #ffffff;
 }
 
 .code-box {
@@ -368,6 +376,12 @@ div[data-testid="stAlert"] {
     margin-top: 10px;
     font-size: 14px;
 }
+
+.counter-text {
+    margin-top: 10px;
+    color: #9b9b9b;
+    font-size: 14px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -392,6 +406,7 @@ with tab1:
                 first_name = st.text_input("Imię")
             with col2:
                 last_name = st.text_input("Nazwisko")
+
             submitted = st.form_submit_button("Wygeneruj kartę", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -442,26 +457,20 @@ with tab1:
         qr_data = f"WB-LOYALTY:{client['code']}"
         qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=" + urllib.parse.quote(qr_data)
 
+        st.markdown('<div class="card-box">', unsafe_allow_html=True)
+        st.markdown('<div class="muted">Klientka</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="client-name">{client_name}</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="muted" style="margin-top: 18px;">Kod karty</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="code-box">{client["code"]}</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="muted">Postęp</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="stamp-big">{stamp_visual(client["stamps"])}</div>', unsafe_allow_html=True)
         st.markdown(
-            f"""
-            <div class="card-box">
-                <div class="muted">Klientka</div>
-                <div style="font-size: 28px; font-weight: 800; margin-top: 6px; color: #ffffff;">
-                    {client_name}
-                </div>
-
-                <div class="muted" style="margin-top: 18px;">Kod karty</div>
-                <div class="code-box">{client["code"]}</div>
-
-                <div class="muted">Postęp</div>
-                <div class="stamp-big">{stamp_visual(client["stamps"])}</div>
-                <div style="margin-top: 10px; color: #9b9b9b; font-size: 14px;">
-                    {client["stamps"]} / {MAX_STAMPS} pieczątek
-                </div>
-            </div>
-            """,
+            f'<div class="counter-text">{client["stamps"]} / {MAX_STAMPS} pieczątek</div>',
             unsafe_allow_html=True
         )
+        st.markdown('</div>', unsafe_allow_html=True)
 
         if client["reward_ready"]:
             st.success("Nagroda gotowa do odebrania.")
@@ -480,7 +489,7 @@ with tab2:
     if logo_uri:
         st.markdown(
             f"""
-            <div class="hero panel-logo" style="min-height: 96px; margin-bottom: 10px;">
+            <div class="hero panel-logo" style="min-height: 90px; margin-bottom: 10px;">
                 <img src="{logo_uri}" alt="Logo">
             </div>
             """,
@@ -558,26 +567,20 @@ with tab2:
         if final_client:
             final_name = full_name(final_client.get("first_name", ""), final_client.get("last_name", ""))
 
+            st.markdown('<div class="card-box">', unsafe_allow_html=True)
+            st.markdown('<div class="muted">Klientka</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="client-name">{final_name}</div>', unsafe_allow_html=True)
+
+            st.markdown('<div class="muted" style="margin-top: 18px;">Kod</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="code-box">{final_client["code"]}</div>', unsafe_allow_html=True)
+
+            st.markdown('<div class="muted">Pieczątki</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="stamp-big">{stamp_visual(final_client["stamps"])}</div>', unsafe_allow_html=True)
             st.markdown(
-                f"""
-                <div class="card-box">
-                    <div class="muted">Klientka</div>
-                    <div style="font-size: 28px; font-weight: 800; margin-top: 6px; color: #ffffff;">
-                        {final_name}
-                    </div>
-
-                    <div class="muted" style="margin-top: 18px;">Kod</div>
-                    <div class="code-box">{final_client["code"]}</div>
-
-                    <div class="muted">Pieczątki</div>
-                    <div class="stamp-big">{stamp_visual(final_client["stamps"])}</div>
-                    <div style="margin-top: 10px; color: #9b9b9b; font-size: 14px;">
-                        {final_client["stamps"]} / {MAX_STAMPS}
-                    </div>
-                </div>
-                """,
+                f'<div class="counter-text">{final_client["stamps"]} / {MAX_STAMPS}</div>',
                 unsafe_allow_html=True
             )
+            st.markdown('</div>', unsafe_allow_html=True)
 
             if final_client["reward_ready"]:
                 st.success("Ta klientka ma gotową nagrodę.")
