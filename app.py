@@ -124,11 +124,10 @@ query = st.query_params
 scanned_code = query.get("scan")
 admin_mode = query.get("admin")
 
-if scanned_code:
-    scanned_client_id, scanned_client = find_client_by_code(clients, scanned_code)
+if scanned_code and not st.session_state.get("scan_loaded"):
     st.session_state["scan_code"] = scanned_code
-    if scanned_client_id:
-        st.session_state["selected_client_id"] = scanned_client_id
+    st.session_state["scan_loaded"] = true
+    
 
 st.markdown("""
 <style>
