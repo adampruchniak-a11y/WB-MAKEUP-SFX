@@ -42,12 +42,31 @@ def normalize_text(value: str) -> str:
     return " ".join(value.strip().split())
 
 
+def format_name_case(value: str) -> str:
+    clean = normalize_text(value).lower()
+    if not clean:
+        return ""
+    parts = clean.split(" ")
+    formatted_parts = []
+
+    for part in parts:
+        subparts = part.split("-")
+        formatted_subparts = [p[:1].upper() + p[1:] for p in subparts if p]
+        formatted_parts.append("-".join(formatted_subparts))
+
+    return " ".join(formatted_parts)
+
+
 def normalize_name(first_name: str, last_name: str) -> str:
-    return f"{normalize_text(first_name)} {normalize_text(last_name)}".strip().lower()
+    first = format_name_case(first_name)
+    last = format_name_case(last_name)
+    return f"{first} {last}".strip().lower()
 
 
 def full_name(first_name: str, last_name: str) -> str:
-    return f"{normalize_text(first_name)} {normalize_text(last_name)}".strip()
+    first = format_name_case(first_name)
+    last = format_name_case(last_name)
+    return f"{first} {last}".strip()
 
 
 def find_existing_client(first_name, last_name, clients):
@@ -106,7 +125,7 @@ def validate_personal_name(value: str, field_name: str):
     if clean.lower() in banned_words:
         return False, f"Podaj prawdziwe {field_name.lower()}."
 
-    return True, clean
+    return True, format_name_case(clean)
 
 
 clients = load_clients()
@@ -128,7 +147,6 @@ if "scan_code" not in st.session_state:
 
 query = st.query_params
 scanned_code = query.get("scan")
-admin_mode = query.get("admin")
 
 if scanned_code and not st.session_state.get("scan_loaded"):
     st.session_state["scan_code"] = scanned_code
@@ -144,63 +162,74 @@ html, body, [class*="css"] {
 }
 
 .stApp {
-    background: linear-gradient(180deg, #020202 0%, #090909 100%);
+    background:
+        radial-gradient(circle at top, rgba(190, 150, 70, 0.10) 0%, rgba(0,0,0,0) 30%),
+        linear-gradient(180deg, #020202 0%, #060606 45%, #0a0a0a 100%);
     color: #f5f5f5;
 }
 
 .block-container {
-    max-width: 860px;
-    padding-top: 1.6rem;
+    max-width: 880px;
+    padding-top: 1.4rem;
     padding-bottom: 3rem;
-}
-
-.main-title {
-    font-size: 36px;
-    font-weight: 800;
-    margin-bottom: 8px;
-    color: #ffffff;
-    text-align: center;
-}
-
-.sub-text {
-    color: #9b9b9b;
-    margin-bottom: 26px;
-    font-size: 16px;
-    text-align: center;
 }
 
 .stTabs [data-baseweb="tab-list"] {
     gap: 10px;
     background: transparent;
+    margin-bottom: 10px;
 }
 
 .stTabs [data-baseweb="tab"] {
-    background: #0d0d0d;
-    border: 1px solid #1c1c1c;
+    background: #0f0f0f;
+    border: 1px solid #202020;
     border-radius: 14px 14px 0 0;
-    color: #d4d4d4;
+    color: #d7d7d7;
     padding-left: 18px;
     padding-right: 18px;
+    font-weight: 600;
 }
 
 .stTabs [aria-selected="true"] {
-    background: #141414 !important;
-    color: #ffffff !important;
-    border-color: #2b2b2b !important;
+    background: #151515 !important;
+    color: #f7e7b2 !important;
+    border-color: #4a3a18 !important;
+}
+
+.logo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 6px;
+    margin-bottom: 24px;
 }
 
 .card-box {
-    background: linear-gradient(180deg, #080808 0%, #101010 100%);
-    border: 1px solid #1f1f1f;
+    background:
+        linear-gradient(180deg, rgba(22,22,22,0.98) 0%, rgba(10,10,10,0.98) 100%);
+    border: 1px solid #252525;
     border-radius: 24px;
     padding: 26px;
     margin-top: 18px;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+    box-shadow:
+        0 18px 50px rgba(0,0,0,0.45),
+        inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.form-box {
+    background:
+        linear-gradient(180deg, rgba(12,12,12,0.98) 0%, rgba(6,6,6,0.98) 100%);
+    border: 1px solid #252525;
+    border-radius: 24px;
+    padding: 22px;
+    margin-top: 10px;
+    box-shadow:
+        0 18px 50px rgba(0,0,0,0.35),
+        inset 0 1px 0 rgba(255,255,255,0.03);
 }
 
 .code-box {
-    background: #141414;
-    border: 1px solid #242424;
+    background: #121212;
+    border: 1px solid #2d2d2d;
     border-radius: 16px;
     padding: 16px;
     text-align: center;
@@ -209,77 +238,91 @@ html, body, [class*="css"] {
     letter-spacing: 2px;
     margin-top: 8px;
     margin-bottom: 18px;
-    color: #ffffff;
+    color: #f7e7b2;
 }
 
 .muted {
-    color: #8f8f8f;
+    color: #9a9a9a;
     font-size: 14px;
 }
 
 .stamp-big {
-    font-size: 28px;
+    font-size: 30px;
     letter-spacing: 6px;
     margin-top: 8px;
-    color: #f5f5f5;
+    color: #f7e7b2;
 }
 
 .search-box {
-    background: #0c0c0c;
-    border: 1px solid #1c1c1c;
+    background: #0b0b0b;
+    border: 1px solid #1e1e1e;
     border-radius: 20px;
     padding: 20px;
     margin-top: 16px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
 }
 
 .section-title {
     font-size: 20px;
     font-weight: 700;
     margin-bottom: 6px;
-    color: #ffffff;
+    color: #f6f6f6;
 }
 
 .pro-note {
-    background: #101010;
-    border: 1px solid #252525;
+    background: linear-gradient(180deg, #111111 0%, #0c0c0c 100%);
+    border: 1px solid #3a2f17;
     border-radius: 16px;
     padding: 14px 16px;
     margin-top: 10px;
-    color: #d4d4d4;
+    color: #ddd1a5;
+}
+
+.stTextInput label {
+    color: #d8d8d8 !important;
+    font-weight: 600 !important;
 }
 
 .stTextInput input {
-    background: #101010 !important;
+    background: #0f0f0f !important;
     color: #ffffff !important;
-    border: 1px solid #2a2a2a !important;
-    border-radius: 14px !important;
+    border: 1px solid #2b2b2b !important;
+    border-radius: 16px !important;
+    min-height: 52px !important;
 }
 
 .stTextInput input::placeholder {
     color: #666 !important;
 }
 
+.stSelectbox label {
+    color: #d8d8d8 !important;
+    font-weight: 600 !important;
+}
+
 .stSelectbox div[data-baseweb="select"] > div {
-    background: #101010 !important;
-    border: 1px solid #2a2a2a !important;
-    border-radius: 14px !important;
+    background: #0f0f0f !important;
+    border: 1px solid #2b2b2b !important;
+    border-radius: 16px !important;
     color: #ffffff !important;
 }
 
 .stButton > button,
 .stLinkButton > a {
-    background: #101010 !important;
-    color: #ffffff !important;
-    border: 1px solid #2a2a2a !important;
-    border-radius: 14px !important;
-    min-height: 48px;
+    background: linear-gradient(180deg, #191919 0%, #111111 100%) !important;
+    color: #f4e4b1 !important;
+    border: 1px solid #4d3a14 !important;
+    border-radius: 16px !important;
+    min-height: 50px;
     font-weight: 700 !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
 }
 
 .stButton > button:hover,
 .stLinkButton > a:hover {
-    background: #181818 !important;
-    border-color: #404040 !important;
+    background: linear-gradient(180deg, #222222 0%, #171717 100%) !important;
+    border-color: #8f6b20 !important;
+    color: #ffe7a0 !important;
 }
 
 div[data-testid="stAlert"] {
@@ -287,42 +330,31 @@ div[data-testid="stAlert"] {
     border: 1px solid #2a2a2a !important;
 }
 
-.logo-wrap {
-    display: flex;
-    justify-content: center;
-    margin-top: 6px;
-    margin-bottom: 10px;
-}
-
-.logo-box {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    padding: 0;
-}
-
 .qr-caption {
     text-align: center;
-    color: #8f8f8f;
+    color: #9a9a9a;
     margin-top: 10px;
     font-size: 14px;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #1b1b1b;
+    margin: 24px 0;
 }
 </style>
 """, unsafe_allow_html=True)
 
-tab1, tab2 = st.tabs(["🖤 Karta klientki", "🔒 Panel salonu PRO"])
+tab1, tab2 = st.tabs(["🖤 Karta klientki", "🔒 Panel salonu"])
 
 with tab1:
     st.markdown('<div class="logo-wrap">', unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 3, 1])
+    col1, col2, col3 = st.columns([1, 4, 1])
     with col2:
-        st.image("logo.png", width=320)
+        st.image("logo.png", width=360)
     st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown(
-        '<div class="sub-text">Ekskluzywna karta lojalnościowa klientki.</div>',
-        unsafe_allow_html=True
-    )
+    st.markdown('<div class="form-box">', unsafe_allow_html=True)
 
     with st.form("create_card_form"):
         col1, col2 = st.columns(2)
@@ -332,6 +364,8 @@ with tab1:
             last_name = st.text_input("Nazwisko")
 
         submitted = st.form_submit_button("Wygeneruj kartę", use_container_width=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
     if submitted:
         if st.session_state["created_cards_counter"] >= MAX_CARDS_PER_SESSION:
@@ -390,7 +424,7 @@ with tab1:
         st.markdown('<div class="muted" style="margin-top: 12px;">Kod karty</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="code-box">{client["code"]}</div>', unsafe_allow_html=True)
 
-        st.markdown('<div class="muted">Status lojalnościowy</div>', unsafe_allow_html=True)
+        st.markdown('<div class="muted">Postęp</div>', unsafe_allow_html=True)
         st.markdown(
             f'<div class="stamp-big">{stamp_visual(client["stamps"])}</div>',
             unsafe_allow_html=True
@@ -409,11 +443,13 @@ with tab1:
                 <div style="display:flex; justify-content:center; margin-top: 12px;">
                     <img src="{qr_url}"
                          style="
-                            width: 200px;
-                            border-radius: 24px;
+                            width: 190px;
+                            border-radius: 28px;
                             display:block;
-                            box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-                            border: 1px solid #202020;
+                            box-shadow: 0 14px 34px rgba(0,0,0,0.40);
+                            border: 1px solid #3a3a3a;
+                            background: #ffffff;
+                            padding: 8px;
                          ">
                 </div>
                 <div class="qr-caption">Kod QR klientki</div>
@@ -425,15 +461,10 @@ with tab1:
 
 with tab2:
     st.markdown('<div class="logo-wrap">', unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 3, 1])
+    col1, col2, col3 = st.columns([1, 4, 1])
     with col2:
-        st.image("logo.png", width=250)
+        st.image("logo.png", width=280)
     st.markdown('</div>', unsafe_allow_html=True)
-
-    st.markdown(
-        '<div class="sub-text">Obsługa kart klientek, skanowanie i pieczątki.</div>',
-        unsafe_allow_html=True
-    )
 
     pin = st.text_input("PIN salonu", type="password")
 
@@ -444,7 +475,7 @@ with tab2:
             st.success(f"Zeskanowano kod: {scanned_code}")
 
         st.markdown(
-            '<div class="pro-note"><strong>Skaner telefonu:</strong> otwórz aparat i zeskanuj kartę klientki.</div>',
+            '<div class="pro-note"><strong>Skaner telefonu:</strong> otwórz skaner i zeskanuj kartę klientki.</div>',
             unsafe_allow_html=True
         )
         st.link_button("📷 Otwórz skaner", SCANNER_LINK, use_container_width=True)
@@ -461,7 +492,7 @@ with tab2:
 
         search_name = st.text_input(
             "Wpisz imię lub nazwisko",
-            placeholder="Np. Jan Kowalski",
+            placeholder="Np. Julia Nowak",
             key="search_name"
         )
 
@@ -481,6 +512,7 @@ with tab2:
                 st.session_state["selected_client_id"] = options[chosen_label]
             else:
                 st.warning("Brak klientek pasujących do wyszukiwania.")
+
         st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown('<div class="search-box">', unsafe_allow_html=True)
