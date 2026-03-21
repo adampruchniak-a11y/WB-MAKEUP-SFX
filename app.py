@@ -307,7 +307,7 @@ with tab2:
         if scanned_code:
             st.success(f"Zeskanowano kod: {scanned_code}")
 
-        scanner_link = "https://twoja-domena-ze-scannerem/scanner.html"
+        scanner_link = "https://adampruchniak-a11y.github.io/WB-MAKEUP-SFX/"
         st.markdown(
             f'<div class="pro-note"><strong>Skaner telefonu:</strong> Zeskanuj kod QR.</div>',
             unsafe_allow_html=True
