@@ -351,7 +351,7 @@ with tab1:
     st.markdown('<div class="logo-wrap">', unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 4, 1])
     with col2:
-        st.image("logo.png", width=360)
+        st.image("logo.png", width=250)
     st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('<div class="form-box">', unsafe_allow_html=True)
@@ -463,7 +463,7 @@ with tab2:
     st.markdown('<div class="logo-wrap">', unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 4, 1])
     with col2:
-        st.image("logo.png", width=280)
+        st.image("logo.png", width=210)
     st.markdown('</div>', unsafe_allow_html=True)
 
     pin = st.text_input("PIN salonu", type="password")
