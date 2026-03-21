@@ -7,7 +7,7 @@ import re
 from datetime import datetime
 
 st.set_page_config(
-    page_title="WB Make-up & SFX",
+    page_title="Wiktoria Betler Makeup & SFX",
     page_icon="🖤",
     layout="centered"
 )
@@ -144,30 +144,26 @@ html, body, [class*="css"] {
 }
 
 .stApp {
-    background: linear-gradient(180deg, #030303 0%, #090909 100%);
+    background: linear-gradient(180deg, #020202 0%, #090909 100%);
     color: #f5f5f5;
 }
 
 .block-container {
     max-width: 860px;
-    padding-top: 2.2rem;
+    padding-top: 1.6rem;
     padding-bottom: 3rem;
 }
 
-h1, h2, h3 {
-    letter-spacing: -0.4px;
-}
-
 .main-title {
-    font-size: 44px;
+    font-size: 36px;
     font-weight: 800;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
     color: #ffffff;
     text-align: center;
 }
 
 .sub-text {
-    color: #9f9f9f;
+    color: #9b9b9b;
     margin-bottom: 26px;
     font-size: 16px;
     text-align: center;
@@ -179,8 +175,8 @@ h1, h2, h3 {
 }
 
 .stTabs [data-baseweb="tab"] {
-    background: #0f0f0f;
-    border: 1px solid #1e1e1e;
+    background: #0d0d0d;
+    border: 1px solid #1c1c1c;
     border-radius: 14px 14px 0 0;
     color: #d4d4d4;
     padding-left: 18px;
@@ -188,16 +184,16 @@ h1, h2, h3 {
 }
 
 .stTabs [aria-selected="true"] {
-    background: #171717 !important;
+    background: #141414 !important;
     color: #ffffff !important;
     border-color: #2b2b2b !important;
 }
 
 .card-box {
-    background: linear-gradient(180deg, #080808 0%, #111111 100%);
+    background: linear-gradient(180deg, #080808 0%, #101010 100%);
     border: 1px solid #1f1f1f;
     border-radius: 24px;
-    padding: 28px;
+    padding: 26px;
     margin-top: 18px;
     box-shadow: 0 12px 40px rgba(0,0,0,0.35);
 }
@@ -222,14 +218,10 @@ h1, h2, h3 {
 }
 
 .stamp-big {
-    font-size: 30px;
+    font-size: 28px;
     letter-spacing: 6px;
     margin-top: 8px;
     color: #f5f5f5;
-}
-
-.small-space {
-    height: 14px;
 }
 
 .search-box {
@@ -275,7 +267,6 @@ h1, h2, h3 {
 }
 
 .stButton > button,
-.stDownloadButton > button,
 .stLinkButton > a {
     background: #101010 !important;
     color: #ffffff !important;
@@ -286,7 +277,6 @@ h1, h2, h3 {
 }
 
 .stButton > button:hover,
-.stDownloadButton > button:hover,
 .stLinkButton > a:hover {
     background: #181818 !important;
     border-color: #404040 !important;
@@ -297,10 +287,25 @@ div[data-testid="stAlert"] {
     border: 1px solid #2a2a2a !important;
 }
 
-hr {
+.logo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 6px;
+    margin-bottom: 10px;
+}
+
+.logo-box {
+    background: transparent;
     border: none;
-    border-top: 1px solid #1f1f1f;
-    margin: 24px 0;
+    box-shadow: none;
+    padding: 0;
+}
+
+.qr-caption {
+    text-align: center;
+    color: #8f8f8f;
+    margin-top: 10px;
+    font-size: 14px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -308,11 +313,12 @@ hr {
 tab1, tab2 = st.tabs(["🖤 Karta klientki", "🔒 Panel salonu PRO"])
 
 with tab1:
-    col_logo_left, col_logo_center, col_logo_right = st.columns([1, 2, 1])
-    with col_logo_center:
-        st.image("logo.png", width=240)
+    st.markdown('<div class="logo-wrap">', unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 3, 1])
+    with col2:
+        st.image("logo.png", width=320)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="main-title">WB Make-up & SFX</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="sub-text">Ekskluzywna karta lojalnościowa klientki.</div>',
         unsafe_allow_html=True
@@ -381,8 +387,7 @@ with tab1:
         st.markdown('<div class="muted">Klientka</div>', unsafe_allow_html=True)
         st.subheader(client_name)
 
-        st.markdown('<div class="small-space"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="muted">Kod karty</div>', unsafe_allow_html=True)
+        st.markdown('<div class="muted" style="margin-top: 12px;">Kod karty</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="code-box">{client["code"]}</div>', unsafe_allow_html=True)
 
         st.markdown('<div class="muted">Status lojalnościowy</div>', unsafe_allow_html=True)
@@ -404,16 +409,14 @@ with tab1:
                 <div style="display:flex; justify-content:center; margin-top: 12px;">
                     <img src="{qr_url}"
                          style="
-                            width: 220px;
-                            border-radius: 22px;
+                            width: 200px;
+                            border-radius: 24px;
                             display:block;
                             box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-                            border: 1px solid #222;
+                            border: 1px solid #202020;
                          ">
                 </div>
-                <div style="text-align:center; color:#8f8f8f; margin-top:10px; font-size:14px;">
-                    Kod QR klientki
-                </div>
+                <div class="qr-caption">Kod QR klientki</div>
                 """,
                 unsafe_allow_html=True
             )
@@ -421,11 +424,12 @@ with tab1:
         st.info("Zapisz ten kod QR lub pokaż go przy kolejnej wizycie.")
 
 with tab2:
-    col_logo_left, col_logo_center, col_logo_right = st.columns([1, 2, 1])
-    with col_logo_center:
-        st.image("logo.png", width=180)
+    st.markdown('<div class="logo-wrap">', unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 3, 1])
+    with col2:
+        st.image("logo.png", width=250)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="main-title" style="font-size:34px;">Panel salonu</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="sub-text">Obsługa kart klientek, skanowanie i pieczątki.</div>',
         unsafe_allow_html=True
@@ -510,8 +514,7 @@ with tab2:
             st.markdown('<div class="muted">Klientka</div>', unsafe_allow_html=True)
             st.subheader(final_name)
 
-            st.markdown('<div class="small-space"></div>', unsafe_allow_html=True)
-            st.markdown('<div class="muted">Kod</div>', unsafe_allow_html=True)
+            st.markdown('<div class="muted" style="margin-top: 12px;">Kod</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="code-box">{final_client["code"]}</div>', unsafe_allow_html=True)
 
             st.markdown('<div class="muted">Pieczątki</div>', unsafe_allow_html=True)
