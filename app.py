@@ -1,4 +1,4 @@
-import streamlit as st
+
 import uuid
 import urllib.parse
 import json
@@ -7,8 +7,8 @@ import re
 from datetime import datetime
 
 st.set_page_config(
-    page_title="WB Loyalty",
-    page_icon="💄",
+    page_title="WB Make-up & SFX",
+    page_icon="🖤",
     layout="centered"
 )
 
@@ -120,6 +120,12 @@ if "selected_client_id" not in st.session_state:
 if "created_cards_counter" not in st.session_state:
     st.session_state["created_cards_counter"] = 0
 
+if "scan_loaded" not in st.session_state:
+    st.session_state["scan_loaded"] = False
+
+if "scan_code" not in st.session_state:
+    st.session_state["scan_code"] = ""
+
 query = st.query_params
 scanned_code = query.get("scan")
 admin_mode = query.get("admin")
@@ -127,83 +133,198 @@ admin_mode = query.get("admin")
 if scanned_code and not st.session_state.get("scan_loaded"):
     st.session_state["scan_code"] = scanned_code
     st.session_state["scan_loaded"] = True
-    
+    scanned_client_id, scanned_client = find_client_by_code(clients, scanned_code)
+    if scanned_client_id:
+        st.session_state["selected_client_id"] = scanned_client_id
 
 st.markdown("""
 <style>
+html, body, [class*="css"] {
+    font-family: Inter, Arial, sans-serif;
+}
+
+.stApp {
+    background: linear-gradient(180deg, #050505 0%, #090909 100%);
+    color: #f5f5f5;
+}
+
 .block-container {
-    max-width: 820px;
-    padding-top: 2rem;
+    max-width: 860px;
+    padding-top: 2.2rem;
     padding-bottom: 3rem;
 }
+
+h1, h2, h3 {
+    letter-spacing: -0.4px;
+}
+
 .main-title {
-    font-size: 42px;
+    font-size: 44px;
     font-weight: 800;
     margin-bottom: 6px;
+    color: #ffffff;
 }
+
 .sub-text {
-    opacity: 0.82;
-    margin-bottom: 24px;
+    color: #a3a3a3;
+    margin-bottom: 26px;
+    font-size: 16px;
 }
+
+.stTabs [data-baseweb="tab-list"] {
+    gap: 10px;
+    background: transparent;
+}
+
+.stTabs [data-baseweb="tab"] {
+    background: #101010;
+    border: 1px solid #1f1f1f;
+    border-radius: 14px 14px 0 0;
+    color: #d4d4d4;
+    padding-left: 18px;
+    padding-right: 18px;
+}
+
+.stTabs [aria-selected="true"] {
+    background: #171717 !important;
+    color: #ffffff !important;
+    border-color: #2a2a2a !important;
+}
+
 .card-box {
-    background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 22px;
-    padding: 26px;
+    background: linear-gradient(180deg, #0a0a0a 0%, #111111 100%);
+    border: 1px solid #202020;
+    border-radius: 24px;
+    padding: 28px;
     margin-top: 18px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35);
 }
+
 .code-box {
-    background: rgba(255,255,255,0.06);
-    border-radius: 14px;
-    padding: 14px 16px;
+    background: #151515;
+    border: 1px solid #242424;
+    border-radius: 16px;
+    padding: 16px;
     text-align: center;
     font-size: 24px;
     font-weight: 800;
-    letter-spacing: 1.5px;
+    letter-spacing: 2px;
     margin-top: 8px;
     margin-bottom: 18px;
+    color: #ffffff;
 }
+
 .muted {
-    opacity: 0.72;
+    color: #8f8f8f;
     font-size: 14px;
 }
+
 .stamp-big {
-    font-size: 28px;
-    letter-spacing: 4px;
-    margin-top: 6px;
+    font-size: 30px;
+    letter-spacing: 6px;
+    margin-top: 8px;
+    color: #f5f5f5;
 }
+
 .small-space {
     height: 14px;
 }
+
 .search-box {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 18px;
-    padding: 18px;
+    background: #0d0d0d;
+    border: 1px solid #1e1e1e;
+    border-radius: 20px;
+    padding: 20px;
     margin-top: 16px;
 }
+
 .section-title {
     font-size: 20px;
     font-weight: 700;
     margin-bottom: 6px;
+    color: #ffffff;
 }
+
 .pro-note {
-    background: rgba(59,130,246,0.12);
-    border: 1px solid rgba(59,130,246,0.32);
-    border-radius: 14px;
-    padding: 12px 14px;
+    background: #111111;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    padding: 14px 16px;
     margin-top: 10px;
+    color: #d4d4d4;
+}
+
+.stTextInput input {
+    background: #111111 !important;
+    color: #ffffff !important;
+    border: 1px solid #2a2a2a !important;
+    border-radius: 14px !important;
+}
+
+.stTextInput input::placeholder {
+    color: #6f6f6f !important;
+}
+
+.stSelectbox div[data-baseweb="select"] > div {
+    background: #111111 !important;
+    border: 1px solid #2a2a2a !important;
+    border-radius: 14px !important;
+    color: #ffffff !important;
+}
+
+.stButton > button,
+.stDownloadButton > button,
+.stLinkButton > a {
+    background: #111111 !important;
+    color: #ffffff !important;
+    border: 1px solid #2b2b2b !important;
+    border-radius: 14px !important;
+    min-height: 48px;
+    font-weight: 700 !important;
+}
+
+.stButton > button:hover,
+.stDownloadButton > button:hover,
+.stLinkButton > a:hover {
+    border-color: #4a4a4a !important;
+    background: #181818 !important;
+}
+
+div[data-testid="stAlert"] {
+    border-radius: 16px !important;
+    border: 1px solid #2a2a2a !important;
+}
+
+.stSuccess {
+    background: rgba(34,197,94,0.12) !important;
+}
+
+.stWarning {
+    background: rgba(245,158,11,0.12) !important;
+}
+
+.stError {
+    background: rgba(239,68,68,0.12) !important;
+}
+
+.stInfo {
+    background: rgba(255,255,255,0.04) !important;
+}
+
+hr {
+    border: none;
+    border-top: 1px solid #202020;
+    margin: 24px 0;
 }
 </style>
 """, unsafe_allow_html=True)
 
-tab1, tab2 = st.tabs(["💄 Karta klientki", "🔒 Panel salonu"])
+tab1, tab2 = st.tabs(["🖤 Karta klientki", "🔒 Panel salonu "])
 
 with tab1:
-    st.markdown('<div class="main-title">Karta lojalnościowa</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-title">WB Make-up & SFX</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="sub-text">Wpisz imię i nazwisko, aby wygenerować kartę klientki.</div>',
+        '<div class="sub-text">Karta lojalnościowa klientki.</div>',
         unsafe_allow_html=True
     )
 
@@ -214,7 +335,7 @@ with tab1:
         with col2:
             last_name = st.text_input("Nazwisko")
 
-        submitted = st.form_submit_button("Generuj kartę", use_container_width=True)
+        submitted = st.form_submit_button("Wygeneruj kartę", use_container_width=True)
 
     if submitted:
         if st.session_state["created_cards_counter"] >= MAX_CARDS_PER_SESSION:
@@ -234,7 +355,7 @@ with tab1:
 
                 if existing_client:
                     st.session_state["last_client_id"] = existing_client_id
-                    st.warning("Ta klientka już istnieje w bazie.")
+                    st.warning("Ta klientka już istnieje w bazie. Pokazuję istniejącą kartę.")
                 else:
                     client_id = str(uuid.uuid4())
                     card_code = generate_card_code()
@@ -274,7 +395,7 @@ with tab1:
         st.markdown('<div class="muted">Kod karty</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="code-box">{client["code"]}</div>', unsafe_allow_html=True)
 
-        st.markdown('<div class="muted">Postęp</div>', unsafe_allow_html=True)
+        st.markdown('<div class="muted">Status lojalnościowy</div>', unsafe_allow_html=True)
         st.markdown(
             f'<div class="stamp-big">{stamp_visual(client["stamps"])}</div>',
             unsafe_allow_html=True
@@ -282,20 +403,20 @@ with tab1:
         st.caption(f'{client["stamps"]} / {MAX_STAMPS} pieczątek')
 
         if client["reward_ready"]:
-            st.success("Gotowe 🎉 Klientka ma już nagrodę do odebrania -15% ")
+            st.success("Nagroda gotowa do odebrania.")
 
         st.markdown('</div>', unsafe_allow_html=True)
 
         left, center, right = st.columns([1, 2, 1])
         with center:
-            st.image(qr_url, caption="Twój kod QR", use_container_width=True)
+            st.image(qr_url, caption="Kod QR klientki", use_container_width=True)
 
         st.info("Zapisz ten kod QR lub pokaż go przy kolejnej wizycie.")
 
 with tab2:
-    st.markdown('<div class="main-title" style="font-size:34px;">Panel salonu PRO</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-title" style="font-size:34px;">Panel salonu</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="sub-text">Szybkie wyszukiwanie klientki.</div>',
+        '<div class="sub-text">Obsługa kart klientek, skanowanie i pieczątki.</div>',
         unsafe_allow_html=True
     )
 
@@ -308,10 +429,17 @@ with tab2:
             st.success(f"Zeskanowano kod: {scanned_code}")
 
         st.markdown(
-            '<div class="pro-note"><strong>Skaner telefonu:</strong> kliknij przycisk poniżej i zeskanuj QR klientki aparatem telefonu.</div>',
+            '<div class="pro-note"><strong>Skaner telefonu:</strong> otwórz aparat i zeskanuj kartę klientki.</div>',
             unsafe_allow_html=True
         )
         st.link_button("📷 Otwórz skaner", SCANNER_LINK, use_container_width=True)
+
+        if st.button("✖ Wyczyść zeskanowany kod", use_container_width=True):
+            st.session_state["scan_code"] = ""
+            st.session_state["selected_client_id"] = None
+            st.session_state["scan_loaded"] = False
+            st.query_params.clear()
+            st.rerun()
 
         st.markdown('<div class="search-box">', unsafe_allow_html=True)
         st.markdown('<div class="section-title">Szukaj po imieniu i nazwisku</div>', unsafe_allow_html=True)
@@ -425,5 +553,8 @@ with tab2:
                         st.rerun()
                     else:
                         st.warning("Zaznacz najpierw potwierdzenie usunięcia.")
+
+            st.markdown('</div>', unsafe_allow_html=True)
+
     elif pin:
         st.error("Nieprawidłowy PIN.")
