@@ -198,7 +198,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 default_tab = 1 if admin_mode == "1" else 0
-tab1, tab2 = st.tabs(["💄 Karta klientki", "🔒 Panel salonu PRO"])
+tab1, tab2 = st.tabs(["💄 Karta klientki", "🔒 Panel salonu"])
 
 with tab1:
     st.markdown('<div class="main-title">Karta lojalnościowa</div>', unsafe_allow_html=True)
