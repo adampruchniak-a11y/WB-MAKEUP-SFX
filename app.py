@@ -126,7 +126,7 @@ admin_mode = query.get("admin")
 
 if scanned_code and not st.session_state.get("scan_loaded"):
     st.session_state["scan_code"] = scanned_code
-    st.session_state["scan_loaded"] = true
+    st.session_state["scan_loaded"] = True
     
 
 st.markdown("""
