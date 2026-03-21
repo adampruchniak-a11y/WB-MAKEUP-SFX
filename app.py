@@ -4,6 +4,7 @@ import urllib.parse
 import json
 import os
 import re
+import base64
 from datetime import datetime
 
 st.set_page_config(
@@ -128,6 +129,14 @@ def validate_personal_name(value: str, field_name: str):
     return True, format_name_case(clean)
 
 
+def logo_data_uri(path: str) -> str:
+    if not os.path.exists(path):
+        return ""
+    with open(path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode("utf-8")
+    return f"data:image/png;base64,{encoded}"
+
+
 clients = load_clients()
 
 if "last_client_id" not in st.session_state:
@@ -155,6 +164,8 @@ if scanned_code and not st.session_state.get("scan_loaded"):
     if scanned_client_id:
         st.session_state["selected_client_id"] = scanned_client_id
 
+logo_uri = logo_data_uri("logo.png")
+
 st.markdown("""
 <style>
 html, body, [class*="css"] {
@@ -163,28 +174,28 @@ html, body, [class*="css"] {
 
 .stApp {
     background:
-        radial-gradient(circle at top, rgba(190, 150, 70, 0.10) 0%, rgba(0,0,0,0) 30%),
+        radial-gradient(circle at top, rgba(194,156,76,0.12) 0%, rgba(0,0,0,0) 28%),
         linear-gradient(180deg, #020202 0%, #060606 45%, #0a0a0a 100%);
     color: #f5f5f5;
 }
 
 .block-container {
-    max-width: 880px;
-    padding-top: 1.4rem;
-    padding-bottom: 3rem;
+    max-width: 820px;
+    padding-top: 0.7rem;
+    padding-bottom: 2.8rem;
 }
 
 .stTabs [data-baseweb="tab-list"] {
     gap: 10px;
     background: transparent;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 
 .stTabs [data-baseweb="tab"] {
     background: #0f0f0f;
-    border: 1px solid #202020;
+    border: 1px solid #1f1f1f;
     border-radius: 14px 14px 0 0;
-    color: #d7d7d7;
+    color: #d8d8d8;
     padding-left: 18px;
     padding-right: 18px;
     font-weight: 600;
@@ -192,44 +203,58 @@ html, body, [class*="css"] {
 
 .stTabs [aria-selected="true"] {
     background: #151515 !important;
-    color: #f7e7b2 !important;
-    border-color: #4a3a18 !important;
+    color: #f5df9c !important;
+    border-color: #4b3a15 !important;
 }
 
-.logo-wrap {
-    display: flex;
-    justify-content: center;
-    margin-top: 6px;
-    margin-bottom: 24px;
-}
-
-.card-box {
+.hero {
+    margin: 6px 0 14px 0;
+    border-radius: 28px;
+    border: 1px solid #1b1b1b;
     background:
-        linear-gradient(180deg, rgba(22,22,22,0.98) 0%, rgba(10,10,10,0.98) 100%);
-    border: 1px solid #252525;
-    border-radius: 24px;
-    padding: 26px;
-    margin-top: 18px;
+        radial-gradient(circle at center, rgba(185,145,63,0.10) 0%, rgba(0,0,0,0) 42%),
+        linear-gradient(180deg, #080808 0%, #050505 100%);
+    min-height: 170px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     box-shadow:
-        0 18px 50px rgba(0,0,0,0.45),
-        inset 0 1px 0 rgba(255,255,255,0.03);
+        0 16px 40px rgba(0,0,0,0.38),
+        inset 0 1px 0 rgba(255,255,255,0.02);
+}
+
+.hero img {
+    width: 270px;
+    max-width: 82%;
+    display: block;
+    filter: drop-shadow(0 3px 10px rgba(201, 166, 86, 0.10));
 }
 
 .form-box {
-    background:
-        linear-gradient(180deg, rgba(12,12,12,0.98) 0%, rgba(6,6,6,0.98) 100%);
-    border: 1px solid #252525;
+    background: linear-gradient(180deg, rgba(12,12,12,0.98) 0%, rgba(7,7,7,0.98) 100%);
+    border: 1px solid #242424;
     border-radius: 24px;
-    padding: 22px;
-    margin-top: 10px;
+    padding: 18px;
+    margin-top: 4px;
     box-shadow:
-        0 18px 50px rgba(0,0,0,0.35),
-        inset 0 1px 0 rgba(255,255,255,0.03);
+        0 14px 34px rgba(0,0,0,0.34),
+        inset 0 1px 0 rgba(255,255,255,0.02);
+}
+
+.card-box {
+    background: linear-gradient(180deg, rgba(18,18,18,0.98) 0%, rgba(8,8,8,0.98) 100%);
+    border: 1px solid #242424;
+    border-radius: 24px;
+    padding: 24px;
+    margin-top: 18px;
+    box-shadow:
+        0 16px 40px rgba(0,0,0,0.40),
+        inset 0 1px 0 rgba(255,255,255,0.02);
 }
 
 .code-box {
     background: #121212;
-    border: 1px solid #2d2d2d;
+    border: 1px solid #2c2c2c;
     border-radius: 16px;
     padding: 16px;
     text-align: center;
@@ -238,55 +263,54 @@ html, body, [class*="css"] {
     letter-spacing: 2px;
     margin-top: 8px;
     margin-bottom: 18px;
-    color: #f7e7b2;
+    color: #f1d88e;
 }
 
 .muted {
-    color: #9a9a9a;
+    color: #979797;
     font-size: 14px;
 }
 
 .stamp-big {
-    font-size: 30px;
+    font-size: 28px;
     letter-spacing: 6px;
     margin-top: 8px;
-    color: #f7e7b2;
+    color: #f1d88e;
 }
 
 .search-box {
     background: #0b0b0b;
-    border: 1px solid #1e1e1e;
+    border: 1px solid #1f1f1f;
     border-radius: 20px;
-    padding: 20px;
+    padding: 18px;
     margin-top: 16px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
 }
 
 .section-title {
-    font-size: 20px;
+    font-size: 19px;
     font-weight: 700;
     margin-bottom: 6px;
     color: #f6f6f6;
 }
 
 .pro-note {
-    background: linear-gradient(180deg, #111111 0%, #0c0c0c 100%);
-    border: 1px solid #3a2f17;
+    background: linear-gradient(180deg, #111111 0%, #0d0d0d 100%);
+    border: 1px solid #3b2f17;
     border-radius: 16px;
     padding: 14px 16px;
     margin-top: 10px;
     color: #ddd1a5;
 }
 
-.stTextInput label {
-    color: #d8d8d8 !important;
+.stTextInput label, .stSelectbox label {
+    color: #dbdbdb !important;
     font-weight: 600 !important;
 }
 
 .stTextInput input {
-    background: #0f0f0f !important;
+    background: #0e0e0e !important;
     color: #ffffff !important;
-    border: 1px solid #2b2b2b !important;
+    border: 1px solid #2a2a2a !important;
     border-radius: 16px !important;
     min-height: 52px !important;
 }
@@ -295,33 +319,27 @@ html, body, [class*="css"] {
     color: #666 !important;
 }
 
-.stSelectbox label {
-    color: #d8d8d8 !important;
-    font-weight: 600 !important;
-}
-
 .stSelectbox div[data-baseweb="select"] > div {
-    background: #0f0f0f !important;
-    border: 1px solid #2b2b2b !important;
+    background: #0e0e0e !important;
+    border: 1px solid #2a2a2a !important;
     border-radius: 16px !important;
     color: #ffffff !important;
 }
 
 .stButton > button,
 .stLinkButton > a {
-    background: linear-gradient(180deg, #191919 0%, #111111 100%) !important;
-    color: #f4e4b1 !important;
-    border: 1px solid #4d3a14 !important;
+    background: linear-gradient(180deg, #1a1a1a 0%, #111111 100%) !important;
+    color: #f1d88e !important;
+    border: 1px solid #58431a !important;
     border-radius: 16px !important;
     min-height: 50px;
     font-weight: 700 !important;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
 }
 
 .stButton > button:hover,
 .stLinkButton > a:hover {
-    background: linear-gradient(180deg, #222222 0%, #171717 100%) !important;
-    border-color: #8f6b20 !important;
+    background: linear-gradient(180deg, #232323 0%, #171717 100%) !important;
+    border-color: #9a7626 !important;
     color: #ffe7a0 !important;
 }
 
@@ -330,17 +348,27 @@ div[data-testid="stAlert"] {
     border: 1px solid #2a2a2a !important;
 }
 
-.qr-caption {
-    text-align: center;
-    color: #9a9a9a;
-    margin-top: 10px;
-    font-size: 14px;
+.qr-wrap {
+    display:flex;
+    justify-content:center;
+    margin-top: 12px;
 }
 
-hr {
-    border: none;
-    border-top: 1px solid #1b1b1b;
-    margin: 24px 0;
+.qr-wrap img {
+    width: 180px;
+    border-radius: 26px;
+    display:block;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.40);
+    border: 1px solid #2f2f2f;
+    background: #ffffff;
+    padding: 8px;
+}
+
+.qr-caption {
+    text-align:center;
+    color:#989898;
+    margin-top:10px;
+    font-size:14px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -348,11 +376,15 @@ hr {
 tab1, tab2 = st.tabs(["🖤 Karta klientki", "🔒 Panel salonu"])
 
 with tab1:
-    st.markdown('<div class="logo-wrap">', unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 4, 1])
-    with col2:
-        st.image("logo.png", width=250)
-    st.markdown('</div>', unsafe_allow_html=True)
+    if logo_uri:
+        st.markdown(
+            f"""
+            <div class="hero">
+                <img src="{logo_uri}" alt="Logo">
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     st.markdown('<div class="form-box">', unsafe_allow_html=True)
 
@@ -410,10 +442,7 @@ with tab1:
     last_client_id = st.session_state.get("last_client_id")
     if last_client_id and last_client_id in clients:
         client = clients[last_client_id]
-        client_name = full_name(
-            client.get("first_name", ""),
-            client.get("last_name", "")
-        )
+        client_name = full_name(client.get("first_name", ""), client.get("last_name", ""))
         qr_data = f"WB-LOYALTY:{client['code']}"
         qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=" + urllib.parse.quote(qr_data)
 
@@ -425,10 +454,7 @@ with tab1:
         st.markdown(f'<div class="code-box">{client["code"]}</div>', unsafe_allow_html=True)
 
         st.markdown('<div class="muted">Postęp</div>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="stamp-big">{stamp_visual(client["stamps"])}</div>',
-            unsafe_allow_html=True
-        )
+        st.markdown(f'<div class="stamp-big">{stamp_visual(client["stamps"])}</div>', unsafe_allow_html=True)
         st.caption(f'{client["stamps"]} / {MAX_STAMPS} pieczątek')
 
         if client["reward_ready"]:
@@ -436,35 +462,26 @@ with tab1:
 
         st.markdown('</div>', unsafe_allow_html=True)
 
-        left, center, right = st.columns([1, 2, 1])
-        with center:
-            st.markdown(
-                f"""
-                <div style="display:flex; justify-content:center; margin-top: 12px;">
-                    <img src="{qr_url}"
-                         style="
-                            width: 190px;
-                            border-radius: 28px;
-                            display:block;
-                            box-shadow: 0 14px 34px rgba(0,0,0,0.40);
-                            border: 1px solid #3a3a3a;
-                            background: #ffffff;
-                            padding: 8px;
-                         ">
-                </div>
-                <div class="qr-caption">Kod QR klientki</div>
-                """,
-                unsafe_allow_html=True
-            )
-
-        st.info("Zapisz ten kod QR lub pokaż go przy kolejnej wizycie.")
+        st.markdown(
+            f"""
+            <div class="qr-wrap">
+                <img src="{qr_url}" alt="QR">
+            </div>
+            <div class="qr-caption">Kod QR klientki</div>
+            """,
+            unsafe_allow_html=True
+        )
 
 with tab2:
-    st.markdown('<div class="logo-wrap">', unsafe_allow_html=True)
-    col1, col2, col3 = st.columns([1, 4, 1])
-    with col2:
-        st.image("logo.png", width=210)
-    st.markdown('</div>', unsafe_allow_html=True)
+    if logo_uri:
+        st.markdown(
+            f"""
+            <div class="hero" style="min-height: 135px; margin-bottom: 14px;">
+                <img src="{logo_uri}" alt="Logo" style="width: 220px; max-width: 74%;">
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     pin = st.text_input("PIN salonu", type="password")
 
@@ -498,7 +515,6 @@ with tab2:
 
         if search_name.strip():
             results = search_clients_by_name(clients, search_name)
-
             if results:
                 options = {
                     f"{full_name(data.get('first_name', ''), data.get('last_name', ''))} — {data['code']}": client_id
@@ -512,7 +528,6 @@ with tab2:
                 st.session_state["selected_client_id"] = options[chosen_label]
             else:
                 st.warning("Brak klientek pasujących do wyszukiwania.")
-
         st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown('<div class="search-box">', unsafe_allow_html=True)
@@ -537,10 +552,7 @@ with tab2:
         final_client = clients.get(final_client_id) if final_client_id in clients else None
 
         if final_client:
-            final_name = full_name(
-                final_client.get("first_name", ""),
-                final_client.get("last_name", "")
-            )
+            final_name = full_name(final_client.get("first_name", ""), final_client.get("last_name", ""))
 
             st.markdown('<div class="card-box">', unsafe_allow_html=True)
             st.markdown('<div class="muted">Klientka</div>', unsafe_allow_html=True)
@@ -550,10 +562,7 @@ with tab2:
             st.markdown(f'<div class="code-box">{final_client["code"]}</div>', unsafe_allow_html=True)
 
             st.markdown('<div class="muted">Pieczątki</div>', unsafe_allow_html=True)
-            st.markdown(
-                f'<div class="stamp-big">{stamp_visual(final_client["stamps"])}</div>',
-                unsafe_allow_html=True
-            )
+            st.markdown(f'<div class="stamp-big">{stamp_visual(final_client["stamps"])}</div>', unsafe_allow_html=True)
             st.caption(f'{final_client["stamps"]} / {MAX_STAMPS}')
 
             if final_client["reward_ready"]:
@@ -584,10 +593,7 @@ with tab2:
                     st.rerun()
 
             with col3:
-                confirm_delete = st.checkbox(
-                    "Potwierdź usunięcie",
-                    key=f"confirm_delete_{final_client_id}"
-                )
+                confirm_delete = st.checkbox("Potwierdź usunięcie", key=f"confirm_delete_{final_client_id}")
                 if st.button("🗑️ Usuń kartę", use_container_width=True):
                     if confirm_delete:
                         del clients[final_client_id]
