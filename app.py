@@ -101,7 +101,7 @@ def validate_personal_name(value: str, field_name: str):
     if not re.fullmatch(r"[A-Za-zÀ-ÖØ-öø-ÿĄąĆćĘęŁłŃńÓóŚśŹźŻż \-]+", clean):
         return False, f"{field_name} może zawierać tylko litery, spacje i myślnik."
 
-    banned_words = {"dupa", "test", "spam", "admin", "xxx", "abc", "qwerty"}
+    banned_words = {"dupa", "test", "spam", "admin", "xxx", "abc", "qwerty", "kurwa", "chuj", "twoja stara"}
     if clean.lower() in banned_words:
         return False, f"Podaj prawdziwe {field_name.lower()}."
 
@@ -234,7 +234,7 @@ with tab1:
 
                 if existing_client:
                     st.session_state["last_client_id"] = existing_client_id
-                    st.warning("Ta klientka już istnieje w bazie. Pokazuję istniejącą kartę zamiast tworzyć nową.")
+                    st.warning("Ta klientka już istnieje w bazie.")
                 else:
                     client_id = str(uuid.uuid4())
                     card_code = generate_card_code()
