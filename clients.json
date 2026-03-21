@@ -1,1 +1,29 @@
-{}
+{
+  "11111111-aaaa-bbbb-cccc-111111111111": {
+    "first_name": "Wiktoria",
+    "last_name": "Betler",
+    "name": "Wiktoria Betler",
+    "code": "9B5E7076",
+    "stamps": 2,
+    "reward_ready": false,
+    "created_at": "2026-03-21T10:00:00"
+  },
+  "22222222-aaaa-bbbb-cccc-222222222222": {
+    "first_name": "Julia",
+    "last_name": "Nowak",
+    "name": "Julia Nowak",
+    "code": "A7C19D22",
+    "stamps": 4,
+    "reward_ready": false,
+    "created_at": "2026-03-21T10:05:00"
+  },
+  "33333333-aaaa-bbbb-cccc-333333333333": {
+    "first_name": "Oliwia",
+    "last_name": "Kowalska",
+    "name": "Oliwia Kowalska",
+    "code": "F3D81B9A",
+    "stamps": 5,
+    "reward_ready": true,
+    "created_at": "2026-03-21T10:10:00"
+  }
+}
