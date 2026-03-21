@@ -1,3 +1,8 @@
+
+Adam Pruchniak <adam.pruchniak@gmail.com>
+02:06 (0 minut temu)
+do mnie
+
 import streamlit as st
 import uuid
 import urllib.parse
@@ -16,6 +21,7 @@ DB_FILE = "clients.json"
 ADMIN_PIN = "1234"
 MAX_STAMPS = 5
 MAX_CARDS_PER_SESSION = 3
+SCANNER_LINK = "https://adampruchniak-a11y.github.io/WB-MAKEUP-SFX/"
 
 
 def load_clients():
@@ -101,7 +107,7 @@ def validate_personal_name(value: str, field_name: str):
     if not re.fullmatch(r"[A-Za-zÀ-ÖØ-öø-ÿĄąĆćĘęŁłŃńÓóŚśŹźŻż \-]+", clean):
         return False, f"{field_name} może zawierać tylko litery, spacje i myślnik."
 
-    banned_words = {"dupa", "test", "spam", "admin", "xxx", "abc", "qwerty", "kurwa", "chuj", "twoja stara"}
+    banned_words = {"dupa", "test", "spam", "admin", "xxx", "abc", "qwerty"}
     if clean.lower() in banned_words:
         return False, f"Podaj prawdziwe {field_name.lower()}."
 
@@ -125,6 +131,7 @@ admin_mode = query.get("admin")
 
 if scanned_code:
     scanned_client_id, scanned_client = find_client_by_code(clients, scanned_code)
+    st.session_state["scan_code"] = scanned_code
     if scanned_client_id:
         st.session_state["selected_client_id"] = scanned_client_id
 
@@ -197,8 +204,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-default_tab = 1 if admin_mode == "1" else 0
-tab1, tab2 = st.tabs(["💄 Karta klientki", "🔒 Panel salonu"])
+tab1, tab2 = st.tabs(["💄 Karta klientki", "🔒 Panel salonu PRO"])
 
 with tab1:
     st.markdown('<div class="main-title">Karta lojalnościowa</div>', unsafe_allow_html=True)
@@ -234,7 +240,7 @@ with tab1:
 
                 if existing_client:
                     st.session_state["last_client_id"] = existing_client_id
-                    st.warning("Ta klientka już istnieje w bazie.")
+                    st.warning("Ta klientka już istnieje w bazie. Pokazuję istniejącą kartę zamiast tworzyć nową.")
                 else:
                     client_id = str(uuid.uuid4())
                     card_code = generate_card_code()
@@ -293,9 +299,9 @@ with tab1:
         st.info("Zapisz ten kod QR lub pokaż go przy kolejnej wizycie.")
 
 with tab2:
-    st.markdown('<div class="main-title" style="font-size:34px;">Panel salonu </div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-title" style="font-size:34px;">Panel salonu PRO</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="sub-text">Szybkie wyszukiwanie klientki.</div>',
+        '<div class="sub-text">Wersja pod aparat telefonu i szybkie wyszukiwanie klientki.</div>',
         unsafe_allow_html=True
     )
 
@@ -307,12 +313,11 @@ with tab2:
         if scanned_code:
             st.success(f"Zeskanowano kod: {scanned_code}")
 
-        scanner_link = "https://adampruchniak-a11y.github.io/WB-MAKEUP-SFX/"
         st.markdown(
-            f'<div class="pro-note"><strong>Skaner telefonu:</strong> Zeskanuj kod QR.</div>',
+            '<div class="pro-note"><strong>Skaner telefonu:</strong> kliknij przycisk poniżej i zeskanuj QR klientki aparatem telefonu.</div>',
             unsafe_allow_html=True
         )
-        st.code(scanner_link)
+        st.link_button("📷 Otwórz skaner", SCANNER_LINK, use_container_width=True)
 
         st.markdown('<div class="search-box">', unsafe_allow_html=True)
         st.markdown('<div class="section-title">Szukaj po imieniu i nazwisku</div>', unsafe_allow_html=True)
@@ -342,10 +347,10 @@ with tab2:
         st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown('<div class="search-box">', unsafe_allow_html=True)
-        st.markdown('<div class="section-title">Wpisz kod ręcznie</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">Kod klientki</div>', unsafe_allow_html=True)
 
         scan_code = st.text_input(
-            "Kod klientki",
+            "Kod zeskanowany lub wpisany ręcznie",
             placeholder="Np. WB-LOYALTY:9B5E7076 albo samo 9B5E7076",
             key="scan_code"
         )
