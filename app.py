@@ -199,7 +199,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-tab1, tab2 = st.tabs(["💄 Karta klientki", "🔒 Panel salonu PRO"])
+tab1, tab2 = st.tabs(["💄 Karta klientki", "🔒 Panel salonu"])
 
 with tab1:
     st.markdown('<div class="main-title">Karta lojalnościowa</div>', unsafe_allow_html=True)
@@ -235,7 +235,7 @@ with tab1:
 
                 if existing_client:
                     st.session_state["last_client_id"] = existing_client_id
-                    st.warning("Ta klientka już istnieje w bazie. Pokazuję istniejącą kartę zamiast tworzyć nową.")
+                    st.warning("Ta klientka już istnieje w bazie.")
                 else:
                     client_id = str(uuid.uuid4())
                     card_code = generate_card_code()
@@ -283,7 +283,7 @@ with tab1:
         st.caption(f'{client["stamps"]} / {MAX_STAMPS} pieczątek')
 
         if client["reward_ready"]:
-            st.success("Gotowe 🎉 Klientka ma już nagrodę do odebrania.")
+            st.success("Gotowe 🎉 Klientka ma już nagrodę do odebrania -15% ")
 
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -296,7 +296,7 @@ with tab1:
 with tab2:
     st.markdown('<div class="main-title" style="font-size:34px;">Panel salonu PRO</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="sub-text">Wersja pod aparat telefonu i szybkie wyszukiwanie klientki.</div>',
+        '<div class="sub-text">Szybkie wyszukiwanie klientki.</div>',
         unsafe_allow_html=True
     )
 
