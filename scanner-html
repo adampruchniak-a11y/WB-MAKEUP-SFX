@@ -1,0 +1,151 @@
+
+Adam Pruchniak <adam.pruchniak@gmail.com>
+01:36 (0 minut temu)
+do mnie
+
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WB Loyalty Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #020817;
+      color: white;
+      text-align: center;
+      padding: 24px 16px;
+    }
+
+    .wrap {
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+      font-size: 32px;
+    }
+
+    p {
+      opacity: 0.85;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      display: inline-block;
+      border: none;
+      background: #2563eb;
+      color: white;
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 20px;
+    }
+
+    #reader {
+      width: 100%;
+      max-width: 420px;
+      margin: 0 auto 20px auto;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .info {
+      margin-top: 16px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 15px;
+    }
+
+    .success {
+      background: rgba(34,197,94,0.18);
+      border-color: rgba(34,197,94,0.4);
+    }
+
+    .error {
+      background: rgba(239,68,68,0.18);
+      border-color: rgba(239,68,68,0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>📷 Skaner WB Loyalty</h1>
+    <p>Zeskanuj kod QR klientki aparatem telefonu.</p>
+
+    <button class="btn" onclick="startScanner()">Uruchom aparat</button>
+
+    <div id="reader"></div>
+
+    <div id="status" class="info">
+      Czekam na uruchomienie aparatu.
+    </div>
+  </div>
+
+  <script>
+    const STREAMLIT_URL = "https://wb-makeup-sfx.streamlit.app/";
+
+    let scannerStarted = false;
+    let html5QrCode;
+
+    function setStatus(message, type = "") {
+      const el = document.getElementById("status");
+      el.className = "info";
+      if (type) el.classList.add(type);
+      el.innerText = message;
+    }
+
+    function normalizeCode(raw) {
+      if (!raw) return "";
+      raw = raw.trim();
+      if (raw.startsWith("WB-LOYALTY:")) {
+        return raw.replace("WB-LOYALTY:", "").trim();
+      }
+      return raw;
+    }
+
+    async function startScanner() {
+      if (scannerStarted) return;
+
+      scannerStarted = true;
+      setStatus("Uruchamiam aparat...");
+
+      html5QrCode = new Html5Qrcode("reader");
+
+      try {
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: { width: 260, height: 260 }
+          },
+          (decodedText) => {
+            const code = normalizeCode(decodedText);
+            setStatus("Kod zeskanowany: " + code, "success");
+
+            html5QrCode.stop().then(() => {
+              const target = STREAMLIT_URL + "?scan=" + encodeURIComponent(code) + "&admin=1";
+              window.location.href = target;
+            });
+          },
+          (errorMessage) => {
+            // ignorujemy błędy pojedynczych klatek
+          }
+        );
+      } catch (err) {
+        console.error(err);
+        setStatus("Nie udało się uruchomić aparatu. Sprawdź uprawnienia przeglądarki.", "error");
+        scannerStarted = false;
+      }
+    }
+  </script>
+</body>
+</html>
