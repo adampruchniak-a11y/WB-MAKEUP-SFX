@@ -1,8 +1,3 @@
-
-Adam Pruchniak <adam.pruchniak@gmail.com>
-02:50 (2 minuty temu)
-do mnie
-
 import streamlit as st
 import uuid
 import urllib.parse
