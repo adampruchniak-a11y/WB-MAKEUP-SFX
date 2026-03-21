@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from urllib.parse import quote
 
 st.set_page_config(
-    page_title="Wiktoria Betler Makeup & SFX",
+    page_title="WB Make-up & SFX",
     page_icon="🖤",
     layout="centered"
 )
@@ -23,6 +23,7 @@ SCANNER_LINK = "https://adampruchniak-a11y.github.io/WB-MAKEUP-SFX/"
 ADMIN_LOGIN = "wiktoria"
 ADMIN_PASSWORD = "WB2024!"
 
+# Celowo bez Q, V, X oraz bez Ą, Ę, Ś itd. na początku
 ALLOWED_START_LETTERS = set("ABCDEFGHIJKLMNOPRSTUWYZ")
 
 BANNED_ROOTS = {
@@ -32,28 +33,202 @@ BANNED_ROOTS = {
 }
 
 BANNED_EXACT = {
-    "test", "spam", "admin", "administrator", "root", "xxx", "qwerty",
-    "asdf", "abc", "aaaa", "bbbb", "cccc", "dupa"
+    "test", "spam", "admin", "administrator", "root", "xxx",
+    "qwerty", "asdf", "abc", "aaaa", "bbbb", "cccc", "dupa"
 }
 
+
+# =========================
+# Helpers
+# =========================
 
 def now_iso():
     return datetime.utcnow().replace(microsecond=0).isoformat()
 
 
-def parse_iso(value: str):
+def parse_iso(value):
     try:
         return datetime.fromisoformat(value)
     except Exception:
         return None
 
 
+def normalize_spaces(value):
+    return " ".join(str(value or "").strip().split())
+
+
+def strip_accents(value):
+    value = str(value or "")
+    normalized = unicodedata.normalize("NFKD", value)
+    return "".join(ch for ch in normalized if not unicodedata.combining(ch))
+
+
+def format_name_case(value):
+    clean = normalize_spaces(value).lower()
+    if not clean:
+        return ""
+
+    parts = clean.split(" ")
+    out = []
+
+    for part in parts:
+        subparts = part.split("-")
+        formatted = [p[:1].upper() + p[1:] for p in subparts if p]
+        out.append("-".join(formatted))
+
+    return " ".join(out)
+
+
+def full_name(first_name, last_name):
+    return f"{format_name_case(first_name)} {format_name_case(last_name)}".strip()
+
+
+def normalize_name_key(first_name, last_name):
+    return full_name(first_name, last_name).lower()
+
+
+def normalize_phone(phone):
+    return re.sub(r"\D", "", str(phone or ""))
+
+
+def normalize_for_filter(value):
+    value = str(value or "")
+    value = value.lower()
+    value = strip_accents(value)
+
+    replacements = str.maketrans({
+        "0": "o",
+        "1": "i",
+        "3": "e",
+        "4": "a",
+        "5": "s",
+        "7": "t",
+        "@": "a",
+        "$": "s",
+        "!": "i"
+    })
+
+    value = value.translate(replacements)
+    value = re.sub(r"[^a-z]", "", value)
+    value = re.sub(r"(.)\1{1,}", r"\1", value)
+    return value
+
+
+def contains_banned_content(value):
+    value = str(value or "")
+    raw = normalize_spaces(value).lower()
+    raw_ascii = strip_accents(raw)
+
+    tokens = [t for t in re.split(r"[\s\-_\.]+", raw_ascii) if t]
+
+    for token in tokens:
+        if token in BANNED_EXACT:
+            return True
+
+    compact = normalize_for_filter(value)
+
+    if compact in BANNED_EXACT:
+        return True
+
+    for root in BANNED_ROOTS:
+        if root in compact:
+            return True
+
+    return False
+
+
+def starts_with_allowed_letter(value):
+    clean = normalize_spaces(value)
+    if not clean:
+        return False
+    return clean[0].upper() in ALLOWED_START_LETTERS
+
+
+def validate_personal_name(value, field_name):
+    clean = normalize_spaces(value)
+
+    if len(clean) < 2:
+        return False, f"{field_name} musi mieć co najmniej 2 znaki."
+
+    if len(clean) > 40:
+        return False, f"{field_name} jest za długie."
+
+    if re.search(r"\d", clean):
+        return False, f"{field_name} nie może zawierać cyfr."
+
+    if not re.fullmatch(r"[A-Za-zÀ-ÖØ-öø-ÿĄąĆćĘęŁłŃńÓóŚśŹźŻż \-]+", clean):
+        return False, f"{field_name} może zawierać tylko litery, spacje i myślnik."
+
+    if "--" in clean:
+        return False, f"{field_name} ma nieprawidłowy format."
+
+    if not starts_with_allowed_letter(clean):
+        return False, f"{field_name} musi zaczynać się od zwykłej litery, np. A, B, C, D."
+
+    if contains_banned_content(clean):
+        return False, f"{field_name} zawiera niedozwolone słowo."
+
+    return True, format_name_case(clean)
+
+
+def validate_phone(phone):
+    clean = normalize_spaces(phone)
+    if not clean:
+        return True, ""
+    digits = normalize_phone(clean)
+    if len(digits) < 9 or len(digits) > 15:
+        return False, "Telefon ma nieprawidłowy format."
+    return True, clean
+
+
+def validate_email(email):
+    clean = normalize_spaces(email).lower()
+    if not clean:
+        return True, ""
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", clean):
+        return False, "E-mail ma nieprawidłowy format."
+    return True, clean
+
+
+def make_code():
+    return str(uuid.uuid4())[:8].upper()
+
+
+def logo_data_uri(path):
+    if not os.path.exists(path):
+        return ""
+    with open(path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode("utf-8")
+    return f"data:image/png;base64,{encoded}"
+
+
+def stamp_visual(stamps, max_stamps=MAX_STAMPS):
+    stamps = max(0, min(max_stamps, int(stamps)))
+    return ("●" * stamps) + ("○" * (max_stamps - stamps))
+
+
+def add_history_event(client, event_type, by_user, note=""):
+    client.setdefault("history", [])
+    client["history"].insert(0, {
+        "timestamp": now_iso(),
+        "type": event_type,
+        "by": by_user,
+        "note": note
+    })
+
+
+# =========================
+# Database
+# =========================
+
 def load_clients():
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data if isinstance(data, list) else []
+                if isinstance(data, list):
+                    return data
+                return []
         except Exception:
             return []
     return []
@@ -73,9 +248,6 @@ def migrate_clients(clients):
         if "id" not in c:
             c["id"] = str(uuid.uuid4())
             changed = True
-        if "code" not in c:
-            c["code"] = str(uuid.uuid4())[:8].upper()
-            changed = True
         if "first_name" not in c:
             c["first_name"] = ""
             changed = True
@@ -83,13 +255,16 @@ def migrate_clients(clients):
             c["last_name"] = ""
             changed = True
         if "name" not in c:
-            c["name"] = f'{c.get("first_name","")} {c.get("last_name","")}'.strip()
+            c["name"] = full_name(c.get("first_name", ""), c.get("last_name", ""))
             changed = True
         if "phone" not in c:
             c["phone"] = ""
             changed = True
         if "email" not in c:
             c["email"] = ""
+            changed = True
+        if "code" not in c:
+            c["code"] = make_code()
             changed = True
         if "stamps" not in c:
             c["stamps"] = 0
@@ -103,7 +278,7 @@ def migrate_clients(clients):
         if "created_at" not in c:
             c["created_at"] = now_iso()
             changed = True
-        if "history" not in c:
+        if "history" not in c or not isinstance(c["history"], list):
             c["history"] = []
             changed = True
 
@@ -112,211 +287,72 @@ def migrate_clients(clients):
     return clients
 
 
-def normalize_text(value: str) -> str:
-    return " ".join((value or "").strip().split())
+clients = migrate_clients(load_clients())
+if not isinstance(clients, list):
+    clients = []
 
 
-def strip_accents(value: str) -> str:
-    normalized = unicodedata.normalize("NFKD", value)
-    return "".join(ch for ch in normalized if not unicodedata.combining(ch))
+# =========================
+# Find / search
+# =========================
 
+def find_existing_client(first_name, last_name, phone, email):
+    name_key = normalize_name_key(first_name, last_name)
+    phone_key = normalize_phone(phone)
+    email_key = normalize_spaces(email).lower()
 
-def format_name_case(value: str) -> str:
-    clean = normalize_text(value).lower()
-    if not clean:
-        return ""
+    for c in clients:
+        if not c.get("active", True):
+            continue
 
-    parts = clean.split(" ")
-    formatted_parts = []
+        c_name_key = normalize_name_key(c.get("first_name", ""), c.get("last_name", ""))
+        c_phone_key = normalize_phone(c.get("phone", ""))
+        c_email_key = normalize_spaces(c.get("email", "")).lower()
 
-    for part in parts:
-        subparts = part.split("-")
-        formatted_subparts = [p[:1].upper() + p[1:] for p in subparts if p]
-        formatted_parts.append("-".join(formatted_subparts))
-
-    return " ".join(formatted_parts)
-
-
-def normalize_name(first_name: str, last_name: str) -> str:
-    return f"{format_name_case(first_name)} {format_name_case(last_name)}".strip().lower()
-
-
-def full_name(first_name: str, last_name: str) -> str:
-    return f"{format_name_case(first_name)} {format_name_case(last_name)}".strip()
-
-
-def normalize_for_filter(value: str) -> str:
-    value = strip_accents((value or "").lower())
-    replacements = str.maketrans({
-        "0": "o", "1": "i", "3": "e", "4": "a", "5": "s", "7": "t",
-        "@": "a", "$": "s", "!": "i"
-    })
-    value = value.translate(replacements)
-    value = re.sub(r"[^a-z]", "", value)
-    value = re.sub(r"(.)\1{1,}", r"\1", value)
-    return value
-
-
-def contains_banned_content(value: str) -> bool:
-    raw = normalize_text(value).lower()
-    raw_ascii = strip_accents(raw)
-    tokens = [t for t in re.split(r"[\s\-_\.]+", raw_ascii) if t]
-
-    for token in tokens:
-        if token in BANNED_EXACT:
-            return True
-
-    compact = normalize_for_filter(value)
-
-    if compact in BANNED_EXACT:
-        return True
-
-    for root in BANNED_ROOTS:
-        if root in compact:
-            return True
-
-    return False
-
-
-def starts_with_allowed_letter(value: str) -> bool:
-    clean = normalize_text(value)
-    if not clean:
-        return False
-    return clean[0].upper() in ALLOWED_START_LETTERS
-
-
-def normalize_phone(phone: str) -> str:
-    return re.sub(r"\D", "", phone or "")
-
-
-def validate_phone(phone: str):
-    clean = normalize_text(phone)
-    if not clean:
-        return True, ""
-    digits = normalize_phone(clean)
-    if len(digits) < 9 or len(digits) > 15:
-        return False, "Telefon ma nieprawidłowy format."
-    return True, clean
-
-
-def validate_email(email: str):
-    clean = normalize_text(email).lower()
-    if not clean:
-        return True, ""
-    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", clean):
-        return False, "E-mail ma nieprawidłowy format."
-    return True, clean
-
-
-def validate_personal_name(value: str, field_name: str):
-    clean = normalize_text(value)
-
-    if len(clean) < 2:
-        return False, f"{field_name} musi mieć co najmniej 2 znaki."
-
-    if len(clean) > 40:
-        return False, f"{field_name} jest za długie."
-
-    if re.search(r"\d", clean):
-        return False, f"{field_name} nie może zawierać cyfr."
-
-    if not re.fullmatch(r"[A-Za-zÀ-ÖØ-öø-ÿĄąĆćĘęŁłŃńÓóŚśŹźŻż \-]+", clean):
-        return False, f"{field_name} może zawierać tylko litery, spacje i myślnik."
-
-    if "--" in clean:
-        return False, f"{field_name} ma nieprawidłowy format."
-
-    if not starts_with_allowed_letter(clean):
-        return False, f"{field_name} musi zaczynać się od zwykłej litery, np. A, B, C, D..."
-
-    if contains_banned_content(clean):
-        return False, f"{field_name} zawiera niedozwolone słowo."
-
-    return True, format_name_case(clean)
-
-
-def make_code():
-    return str(uuid.uuid4())[:8].upper()
-
-
-def logo_data_uri(path: str):
-    if not os.path.exists(path):
-        return ""
-    with open(path, "rb") as f:
-        encoded = base64.b64encode(f.read()).decode("utf-8")
-    return f"data:image/png;base64,{encoded}"
-
-
-def stamp_visual(stamps, max_stamps=MAX_STAMPS):
-    stamps = max(0, min(max_stamps, int(stamps)))
-    return ("●" * stamps) + ("○" * (max_stamps - stamps))
-
-
-def add_history_event(client: dict, event_type: str, by_user: str, note: str = ""):
-    if "history" not in client:
-        client["history"] = []
-    client["history"].insert(0, {
-        "timestamp": now_iso(),
-        "type": event_type,
-        "by": by_user,
-        "note": note
-    })
-
-
-def find_existing_client(first_name, last_name, phone, email, clients):
-    target_name = normalize_name(first_name, last_name)
-    target_phone = normalize_phone(phone)
-    target_email = normalize_text(email).lower()
-
-    for client in clients:
-        existing_name = normalize_name(client.get("first_name", ""), client.get("last_name", ""))
-        existing_phone = normalize_phone(client.get("phone", ""))
-        existing_email = normalize_text(client.get("email", "")).lower()
-
-        if existing_name == target_name:
-            return client
-        if target_phone and existing_phone and target_phone == existing_phone:
-            return client
-        if target_email and existing_email and target_email == existing_email:
-            return client
+        if c_name_key == name_key:
+            return c
+        if phone_key and c_phone_key and phone_key == c_phone_key:
+            return c
+        if email_key and c_email_key and email_key == c_email_key:
+            return c
 
     return None
 
 
-def find_client_by_code(clients, code):
-    code = normalize_text(code).upper()
+def find_client_by_code(code):
+    code = str(code or "").strip().upper()
     if code.startswith("WB-LOYALTY:"):
         code = code.replace("WB-LOYALTY:", "").strip().upper()
 
-    for client in clients:
-        if not client.get("active", True):
+    for c in clients:
+        if not c.get("active", True):
             continue
-        if client.get("code", "").upper() == code:
-            return client
+        if c.get("code", "").upper() == code:
+            return c
     return None
 
 
-def search_clients(clients, phrase):
-    phrase = normalize_text(phrase).lower()
+def search_clients(phrase):
+    phrase = normalize_spaces(phrase).lower()
     results = []
 
-    for client in clients:
-        if not client.get("active", True):
+    for c in clients:
+        if not c.get("active", True):
             continue
 
-        name = full_name(client.get("first_name", ""), client.get("last_name", "")).lower()
-        phone = normalize_text(client.get("phone", "")).lower()
-        email = normalize_text(client.get("email", "")).lower()
-        code = client.get("code", "").lower()
+        name = full_name(c.get("first_name", ""), c.get("last_name", "")).lower()
+        phone = normalize_spaces(c.get("phone", "")).lower()
+        email = normalize_spaces(c.get("email", "")).lower()
+        code = c.get("code", "").lower()
 
         haystack = " | ".join([name, phone, email, code])
         if phrase in haystack:
-            results.append(client)
+            results.append(c)
 
     return results
 
 
-def get_stats(clients):
+def get_stats():
     active_clients = [c for c in clients if c.get("active", True)]
     total = len(active_clients)
 
@@ -344,13 +380,14 @@ def get_stats(clients):
     return total, by_stamps, new_this_month, stamps_last_7_days
 
 
-def make_csv(clients):
+def make_csv():
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
         "id", "first_name", "last_name", "name", "phone", "email",
         "code", "stamps", "reward_ready", "active", "created_at"
     ])
+
     for c in clients:
         writer.writerow([
             c.get("id", ""),
@@ -365,10 +402,13 @@ def make_csv(clients):
             c.get("active", True),
             c.get("created_at", "")
         ])
+
     return output.getvalue()
 
 
-clients = migrate_clients(load_clients())
+# =========================
+# Session / params
+# =========================
 
 if "last_client_id" not in st.session_state:
     st.session_state["last_client_id"] = None
@@ -388,16 +428,20 @@ if "admin_user" not in st.session_state:
 if "scan_code" not in st.session_state:
     st.session_state["scan_code"] = ""
 
-logo_uri = logo_data_uri("logo.png")
-total_clients, by_stamps, new_this_month, stamps_last_7_days = get_stats(clients)
-
 query = st.query_params
 scanned_code = query.get("scan")
 if scanned_code:
     st.session_state["scan_code"] = scanned_code
-    scanned_client = find_client_by_code(clients, scanned_code)
+    scanned_client = find_client_by_code(scanned_code)
     if scanned_client:
         st.session_state["selected_client_id"] = scanned_client["id"]
+
+
+# =========================
+# UI styles
+# =========================
+
+logo_uri = logo_data_uri("logo.png")
 
 st.markdown("""
 <style>
@@ -624,6 +668,11 @@ div[data-testid="stAlert"] {
 </style>
 """, unsafe_allow_html=True)
 
+
+# =========================
+# Tabs
+# =========================
+
 tab1, tab2 = st.tabs(["🖤 Karta klientki", "🔒 Panel salonu"])
 
 with tab1:
@@ -672,12 +721,10 @@ with tab1:
                 if contains_banned_content(full_candidate):
                     st.error("Imię i nazwisko zawiera niedozwolone słowo.")
                 else:
-                    existing_client = find_existing_client(
-                        first_result, last_result, phone_result, email_result, clients
-                    )
+                    existing = find_existing_client(first_result, last_result, phone_result, email_result)
 
-                    if existing_client:
-                        st.session_state["last_client_id"] = existing_client["id"]
+                    if existing:
+                        st.session_state["last_client_id"] = existing["id"]
                         st.warning("Ta klientka już istnieje w bazie. Pokazuję istniejącą kartę.")
                     else:
                         client = {
@@ -705,47 +752,48 @@ with tab1:
                         st.session_state["created_cards_counter"] += 1
                         st.success("Karta została wygenerowana.")
 
+    current = None
     if st.session_state["last_client_id"]:
-        client = next((c for c in clients if c["id"] == st.session_state["last_client_id"]), None)
+        current = next((c for c in clients if c.get("id") == st.session_state["last_client_id"]), None)
 
-        if client:
-            client_name = full_name(client.get("first_name", ""), client.get("last_name", ""))
-            qr_data = f"WB-LOYALTY:{client['code']}"
-            qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=" + quote(qr_data)
+    if current:
+        client_name = full_name(current.get("first_name", ""), current.get("last_name", ""))
+        qr_data = f"WB-LOYALTY:{current['code']}"
+        qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=" + quote(qr_data)
 
-            st.markdown('<div class="card-box">', unsafe_allow_html=True)
-            st.markdown('<div class="muted">Klientka</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="client-name">{client_name}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="card-box">', unsafe_allow_html=True)
+        st.markdown('<div class="muted">Klientka</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="client-name">{client_name}</div>', unsafe_allow_html=True)
 
-            if client.get("phone"):
-                st.markdown(f'<div class="small-label" style="margin-top:8px;">Telefon: {client["phone"]}</div>', unsafe_allow_html=True)
-            if client.get("email"):
-                st.markdown(f'<div class="small-label">E-mail: {client["email"]}</div>', unsafe_allow_html=True)
+        if current.get("phone"):
+            st.markdown(f'<div class="small-label" style="margin-top:8px;">Telefon: {current["phone"]}</div>', unsafe_allow_html=True)
+        if current.get("email"):
+            st.markdown(f'<div class="small-label">E-mail: {current["email"]}</div>', unsafe_allow_html=True)
 
-            st.markdown('<div class="muted" style="margin-top: 18px;">Kod karty</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="code-box">{client["code"]}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="muted" style="margin-top: 18px;">Kod karty</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="code-box">{current["code"]}</div>', unsafe_allow_html=True)
 
-            st.markdown('<div class="muted">Postęp</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="stamp-big">{stamp_visual(client["stamps"])}</div>', unsafe_allow_html=True)
-            st.markdown(
-                f'<div class="counter-text">{client["stamps"]} / {MAX_STAMPS} pieczątek</div>',
-                unsafe_allow_html=True
-            )
+        st.markdown('<div class="muted">Postęp</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="stamp-big">{stamp_visual(current["stamps"])}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="counter-text">{current["stamps"]} / {MAX_STAMPS} pieczątek</div>',
+            unsafe_allow_html=True
+        )
 
-            if client["reward_ready"]:
-                st.markdown('<div class="reward-banner">🎁 Nagroda gotowa do odebrania</div>', unsafe_allow_html=True)
+        if current.get("reward_ready"):
+            st.markdown('<div class="reward-banner">🎁 Nagroda gotowa do odebrania</div>', unsafe_allow_html=True)
 
-            st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-            st.markdown(
-                f"""
-                <div class="qr-wrap">
-                    <img src="{qr_url}" alt="QR">
-                </div>
-                <div class="qr-caption">Kod QR klientki</div>
-                """,
-                unsafe_allow_html=True
-            )
+        st.markdown(
+            f"""
+            <div class="qr-wrap">
+                <img src="{qr_url}" alt="QR">
+            </div>
+            <div class="qr-caption">Kod QR klientki</div>
+            """,
+            unsafe_allow_html=True
+        )
 
 with tab2:
     if logo_uri:
@@ -804,7 +852,7 @@ with tab2:
         )
 
         if search_phrase.strip():
-            results = search_clients(clients, search_phrase)
+            results = search_clients(search_phrase)
             if results:
                 options = {
                     f"{full_name(c.get('first_name', ''), c.get('last_name', ''))} — {c.get('phone', '') or c.get('code', '')}": c["id"]
@@ -937,7 +985,7 @@ with tab2:
                 confirm_delete = st.checkbox("Potwierdzam trwałe usunięcie", key=f"confirm_delete_{final_client['id']}")
                 if st.button("Usuń trwale", key=f"hard_delete_{final_client['id']}", use_container_width=True):
                     if confirm_delete:
-                        clients = [c for c in clients if c["id"] != final_client["id"]]
+                        clients[:] = [c for c in clients if c["id"] != final_client["id"]]
                         save_clients(clients)
                         st.session_state["selected_client_id"] = None
                         if st.session_state.get("last_client_id") == final_client["id"]:
@@ -965,17 +1013,19 @@ with tab2:
                 else:
                     st.info("Brak historii dla tej klientki.")
 
+        total_clients, by_stamps, new_this_month, stamps_last_7_days = get_stats()
+
         st.markdown('<div class="card-box">', unsafe_allow_html=True)
         st.markdown('<div class="section-title">Statystyki salonu</div>', unsafe_allow_html=True)
 
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
+        s1, s2, s3, s4 = st.columns(4)
+        with s1:
             st.markdown(f'<div class="stat-box"><div class="small-label">Aktywne klientki</div><div class="stat-big">{total_clients}</div></div>', unsafe_allow_html=True)
-        with col2:
+        with s2:
             st.markdown(f'<div class="stat-box"><div class="small-label">Nowe w miesiącu</div><div class="stat-big">{new_this_month}</div></div>', unsafe_allow_html=True)
-        with col3:
+        with s3:
             st.markdown(f'<div class="stat-box"><div class="small-label">Pieczątki 7 dni</div><div class="stat-big">{stamps_last_7_days}</div></div>', unsafe_allow_html=True)
-        with col4:
+        with s4:
             st.markdown(f'<div class="stat-box"><div class="small-label">Nagrody gotowe</div><div class="stat-big">{by_stamps[MAX_STAMPS]}</div></div>', unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
@@ -990,7 +1040,7 @@ with tab2:
 
         st.markdown('</div>', unsafe_allow_html=True)
 
-        csv_data = make_csv(clients)
+        csv_data = make_csv()
         st.download_button(
             "⬇️ Pobierz bazę klientek CSV",
             data=csv_data,
