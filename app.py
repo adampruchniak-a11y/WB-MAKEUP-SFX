@@ -781,7 +781,7 @@ with tab1:
         )
 
         if current.get("reward_ready"):
-            st.markdown('<div class="reward-banner">🎁 Nagroda gotowa do odebrania</div>', unsafe_allow_html=True)
+            st.markdown('<div class="reward-banner"> 🎁 Rabat -15% </div>', unsafe_allow_html=True)
 
         st.markdown('</div>', unsafe_allow_html=True)
 
